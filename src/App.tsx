@@ -33,6 +33,7 @@ import {
 import { api, type Product, type ProductInput } from './api'
 import Dashboard from './Dashboard'
 import { formatDate, formatPrice } from './format'
+import ZnsConfig from './ZnsConfig'
 import './App.css'
 
 type ProductFormValues = {
@@ -48,8 +49,19 @@ const NAV_ITEMS = [
   { key: 'categories', icon: <TagOutlined />, label: 'Danh mục' },
   { key: 'orders', icon: <BarChartOutlined />, label: 'Đơn hàng' },
   { key: 'reports', icon: <BarChartOutlined />, label: 'Báo cáo' },
-  { key: 'settings', icon: <SettingOutlined />, label: 'Cài đặt' },
+  {
+    key: 'settings',
+    icon: <SettingOutlined />,
+    label: 'Cài đặt',
+    children: [{ key: 'zns', label: 'Cấu hình ZNS' }],
+  },
 ]
+
+const PAGE_TITLES: Record<string, string> = {
+  dashboard: 'Tổng quan',
+  products: 'Sản phẩm',
+  zns: 'Cấu hình ZNS',
+}
 
 function AppContent() {
   const { message, modal } = AntApp.useApp()
@@ -65,7 +77,7 @@ function AppContent() {
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const [activeKey, setActiveKey] = useState('dashboard')
+  const [activeKey, setActiveKey] = useState('products')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -259,11 +271,7 @@ function AppContent() {
         <Layout.Header className="topbar">
           <div className="topbar-title">
             <Typography.Title level={4} style={{ margin: 0 }}>
-              {activeKey === 'dashboard'
-                ? 'Tổng quan'
-                : activeKey === 'products'
-                  ? 'Sản phẩm'
-                  : NAV_ITEMS.find((i) => i.key === activeKey)?.label ?? ''}
+              {PAGE_TITLES[activeKey] ?? NAV_ITEMS.find((i) => i.key === activeKey)?.label ?? ''}
             </Typography.Title>
             <Typography.Text type="secondary">
               {activeKey === 'products'
@@ -324,6 +332,8 @@ function AppContent() {
                   emptyText: query.trim() ? 'Không tìm thấy sản phẩm nào' : 'Chưa có sản phẩm nào',
                 }}
               />
+            ) : activeKey === 'zns' ? (
+              <ZnsConfig />
             ) : (
               <Card style={{ marginTop: 16 }}>
                 <Empty description="Trang này đang được xây dựng" />
