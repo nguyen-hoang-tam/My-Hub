@@ -4,7 +4,6 @@ import {
   Button,
   Card,
   Col,
-  Divider,
   Form,
   Input,
   Modal,
@@ -28,15 +27,15 @@ import { formatDate } from './format'
 import './ZnsConfig.css'
 
 const TEMPLATE_FIELDS: Array<{ key: string; label: string; placeholder: string; half: boolean }> = [
-  { key: 'ky', label: 'Kỳ (ky)', placeholder: '1', half: true },
-  { key: 'thang', label: 'Tháng (thang)', placeholder: '4/2020', half: true },
-  { key: 'start_date', label: 'Ngày bắt đầu (start_date)', placeholder: '20/03/2020', half: true },
-  { key: 'end_date', label: 'Ngày kết thúc (end_date)', placeholder: '20/04/2020', half: true },
-  { key: 'customer', label: 'Khách hàng (customer)', placeholder: 'Nguyễn Thị Hoàng Anh', half: true },
-  { key: 'cid', label: 'Mã KH (cid)', placeholder: 'PE010299485', half: true },
-  { key: 'address', label: 'Địa chỉ (address)', placeholder: 'VNG Campus, TP.HCM', half: false },
-  { key: 'amount', label: 'Điện năng (amount)', placeholder: '100', half: true },
-  { key: 'total', label: 'Tổng tiền (total)', placeholder: '100000', half: true },
+  { key: 'ky', label: 'Kỳ', placeholder: 'ky — VD: 1', half: true },
+  { key: 'thang', label: 'Tháng', placeholder: 'thang — VD: 4/2020', half: true },
+  { key: 'start_date', label: 'Ngày bắt đầu', placeholder: 'start_date — VD: 20/03/2020', half: true },
+  { key: 'end_date', label: 'Ngày kết thúc', placeholder: 'end_date — VD: 20/04/2020', half: true },
+  { key: 'customer', label: 'Khách hàng', placeholder: 'customer — VD: Nguyễn Thị Hoàng Anh', half: true },
+  { key: 'cid', label: 'Mã khách hàng', placeholder: 'cid — VD: PE010299485', half: true },
+  { key: 'address', label: 'Địa chỉ', placeholder: 'address — VD: VNG Campus, TP.HCM', half: false },
+  { key: 'amount', label: 'Điện năng', placeholder: 'amount — VD: 100', half: true },
+  { key: 'total', label: 'Tổng tiền', placeholder: 'total — VD: 100000', half: true },
 ]
 
 type FormValues = {
@@ -380,13 +379,27 @@ function ZnsConfigs() {
         <Row gutter={24}>
           <Col xs={24} md={13}>
             <Form form={form} layout="vertical" requiredMark={false}>
-              <Form.Item
-                name="name"
-                label="Tên cấu hình"
-                rules={[{ required: true, whitespace: true, message: 'Nhập tên cấu hình' }]}
-              >
-                <Input placeholder="VD: Hóa đơn tiền điện" autoFocus />
-              </Form.Item>
+              <Row gutter={12}>
+                <Col span={16}>
+                  <Form.Item
+                    name="name"
+                    label="Tên cấu hình"
+                    rules={[{ required: true, whitespace: true, message: 'Nhập tên cấu hình' }]}
+                  >
+                    <Input placeholder="VD: Hóa đơn tiền điện" autoFocus />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="enabled" label="Trạng thái" valuePropName="checked">
+                    <Switch
+                      checkedChildren="Bật"
+                      unCheckedChildren="Tắt"
+                      style={{ marginTop: 2 }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
               <Form.Item
                 name="accessToken"
                 label="Access Token"
@@ -394,6 +407,7 @@ function ZnsConfigs() {
               >
                 <Input.Password placeholder="Nhập Access Token" />
               </Form.Item>
+
               <Row gutter={12}>
                 <Col span={12}>
                   <Form.Item
@@ -405,28 +419,27 @@ function ZnsConfigs() {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="phone" label="Số điện thoại">
+                  <Form.Item name="phone" label="Số điện thoại người nhận">
                     <Input placeholder="84987654321" />
                   </Form.Item>
                 </Col>
               </Row>
-              <Form.Item name="enabled" label="Trạng thái" valuePropName="checked">
-                <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
-              </Form.Item>
 
-              <Divider plain>Template data</Divider>
-              <Row gutter={12}>
-                {TEMPLATE_FIELDS.map((field) => (
-                  <Col key={field.key} span={field.half ? 12 : 24}>
-                    <Form.Item name={field.key} label={field.label}>
-                      <Input placeholder={field.placeholder} />
-                    </Form.Item>
-                  </Col>
-                ))}
-              </Row>
-              <Form.Item name="tracking_id" label="Tracking ID">
-                <Input placeholder="tracking_id" />
-              </Form.Item>
+              <div className="zns-form-section">
+                <div className="zns-form-section-title">Template data</div>
+                <Row gutter={12}>
+                  {TEMPLATE_FIELDS.map((field) => (
+                    <Col key={field.key} span={field.half ? 12 : 24}>
+                      <Form.Item name={field.key} label={field.label}>
+                        <Input placeholder={field.placeholder} />
+                      </Form.Item>
+                    </Col>
+                  ))}
+                </Row>
+                <Form.Item name="tracking_id" label="Tracking ID">
+                  <Input placeholder="tracking_id — VD: abc123" />
+                </Form.Item>
+              </div>
             </Form>
           </Col>
           <Col xs={24} md={11}>
