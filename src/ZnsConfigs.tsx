@@ -457,71 +457,77 @@ function ZnsConfigs() {
           </Space>
         }
         onCancel={() => setDetail(null)}
-        width={560}
+        width={900}
       >
         {detail && (
-          <div>
-            <div className="detail-grid">
-              <div>
-                <div className="detail-label">Tên cấu hình</div>
-                <div className="detail-value">{detail.name}</div>
-              </div>
-              <div>
-                <div className="detail-label">Trạng thái</div>
-                <div className="detail-value">
-                  <Tag color={detail.enabled ? 'success' : 'default'}>
-                    {detail.enabled ? 'Bật' : 'Tắt'}
-                  </Tag>
+          <Row gutter={24}>
+            <Col xs={24} md={12}>
+              <div className="detail-grid">
+                <div>
+                  <div className="detail-label">Tên cấu hình</div>
+                  <div className="detail-value">{detail.name}</div>
+                </div>
+                <div>
+                  <div className="detail-label">Trạng thái</div>
+                  <div className="detail-value">
+                    <Tag color={detail.enabled ? 'success' : 'default'}>
+                      {detail.enabled ? 'Bật' : 'Tắt'}
+                    </Tag>
+                  </div>
+                </div>
+                <div>
+                  <div className="detail-label">Template ID</div>
+                  <div className="detail-value">{detail.templateId}</div>
+                </div>
+                <div>
+                  <div className="detail-label">Số điện thoại</div>
+                  <div className="detail-value">{detail.phone || '—'}</div>
+                </div>
+                <div>
+                  <div className="detail-label">Tracking ID</div>
+                  <div className="detail-value">{detail.trackingId || '—'}</div>
+                </div>
+                <div>
+                  <div className="detail-label">Access Token</div>
+                  <div className="detail-value">••••••••{detail.accessToken.slice(-6)}</div>
+                </div>
+                <div>
+                  <div className="detail-label">Ngày tạo</div>
+                  <div className="detail-value">{formatDate(detail.createdAt)}</div>
+                </div>
+                <div>
+                  <div className="detail-label">Cập nhật</div>
+                  <div className="detail-value">{formatDate(detail.updatedAt)}</div>
                 </div>
               </div>
-              <div>
-                <div className="detail-label">Template ID</div>
-                <div className="detail-value">{detail.templateId}</div>
-              </div>
-              <div>
-                <div className="detail-label">Số điện thoại</div>
-                <div className="detail-value">{detail.phone || '—'}</div>
-              </div>
-              <div>
-                <div className="detail-label">Tracking ID</div>
-                <div className="detail-value">{detail.trackingId || '—'}</div>
-              </div>
-              <div>
-                <div className="detail-label">Access Token</div>
-                <div className="detail-value">••••••••{detail.accessToken.slice(-6)}</div>
-              </div>
-              <div>
-                <div className="detail-label">Ngày tạo</div>
-                <div className="detail-value">{formatDate(detail.createdAt)}</div>
-              </div>
-              <div>
-                <div className="detail-label">Cập nhật</div>
-                <div className="detail-value">{formatDate(detail.updatedAt)}</div>
-              </div>
-            </div>
+            </Col>
 
-            <Divider plain>Xem trước template</Divider>
-            <TemplatePreview data={detail.templateData} />
+            <Col xs={24} md={12}>
+              <Typography.Text strong>Xem trước template:</Typography.Text>
+              <div style={{ marginTop: 8 }}>
+                <TemplatePreview data={detail.templateData} />
+              </div>
 
-            <Typography.Text
-              type="secondary"
-              style={{ fontSize: 12, display: 'block', marginTop: 12 }}
-            >
-              Payload gửi đến Zalo API:
-            </Typography.Text>
-            <pre className="zns-payload">
-              {JSON.stringify(
-                {
-                  phone: detail.phone,
-                  template_id: detail.templateId,
-                  template_data: detail.templateData,
-                  tracking_id: detail.trackingId,
-                },
-                null,
-                2
-              )}
-            </pre>
-          </div>
+              <Typography.Text
+                type="secondary"
+                style={{ fontSize: 12, display: 'block', marginTop: 12 }}
+              >
+                Payload gửi đến Zalo API:
+              </Typography.Text>
+              <pre className="zns-payload">
+                {JSON.stringify(
+                  {
+                    phone: detail.phone,
+                    template_id: detail.templateId,
+                    template_data: detail.templateData,
+                    tracking_id: detail.trackingId,
+                  },
+                  null,
+                  2
+                )}
+              </pre>
+            </Col>
+          </Row>
         )}
       </Modal>
     </div>
