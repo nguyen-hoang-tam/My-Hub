@@ -4,7 +4,9 @@ import {
   App as AntApp,
   Avatar,
   Button,
+  Card,
   ConfigProvider,
+  Empty,
   Form,
   Input,
   InputNumber,
@@ -29,6 +31,8 @@ import {
   TagOutlined,
 } from '@ant-design/icons'
 import { api, type Product, type ProductInput } from './api'
+import Dashboard from './Dashboard'
+import { formatDate, formatPrice } from './format'
 import './App.css'
 
 type ProductFormValues = {
@@ -47,23 +51,6 @@ const NAV_ITEMS = [
   { key: 'settings', icon: <SettingOutlined />, label: 'Cài đặt' },
 ]
 
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatPrice(price: number): string {
-  return price.toLocaleString('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-  })
-}
-
 function AppContent() {
   const { message, modal } = AntApp.useApp()
   const [form] = Form.useForm<ProductFormValues>()
@@ -77,6 +64,8 @@ function AppContent() {
   const [editing, setEditing] = useState<Product | null>(null)
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const [activeKey, setActiveKey] = useState('dashboard')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -178,6 +167,7 @@ function AppContent() {
       title: 'Sản phẩm',
       dataIndex: 'name',
       key: 'name',
+      sorter: (a, b) => a.name.localeCompare(b.name, 'vi'),
       render: (_, product) => (
         <div>
           <div className="cell-name">{product.name}</div>
@@ -190,6 +180,7 @@ function AppContent() {
       dataIndex: 'price',
       key: 'price',
       align: 'right',
+      sorter: (a, b) => a.price - b.price,
       render: (value: number) => formatPrice(value),
     },
     {
@@ -197,11 +188,13 @@ function AppContent() {
       dataIndex: 'quantity',
       key: 'quantity',
       align: 'right',
+      sorter: (a, b) => a.quantity - b.quantity,
     },
     {
       title: 'Giá trị',
       key: 'value',
       align: 'right',
+      sorter: (a, b) => a.price * a.quantity - b.price * b.quantity,
       render: (_, product) => (
         <span className="cell-total">{formatPrice(product.price * product.quantity)}</span>
       ),
@@ -210,6 +203,7 @@ function AppContent() {
       title: 'Cập nhật',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
+      sorter: (a, b) => a.updatedAt - b.updatedAt,
       render: (value: number) => <span className="cell-date">{formatDate(value)}</span>,
     },
     {
@@ -246,8 +240,9 @@ function AppContent() {
         <Menu
           className="sidebar-menu"
           mode="inline"
-          selectedKeys={['products']}
+          selectedKeys={[activeKey]}
           items={NAV_ITEMS}
+          onClick={({ key }) => setActiveKey(key)}
         />
         <div className="sidebar-footer">
           <Avatar size={36} className="user-avatar">
@@ -264,25 +259,33 @@ function AppContent() {
         <Layout.Header className="topbar">
           <div className="topbar-title">
             <Typography.Title level={4} style={{ margin: 0 }}>
-              Sản phẩm
+              {activeKey === 'dashboard'
+                ? 'Tổng quan'
+                : activeKey === 'products'
+                  ? 'Sản phẩm'
+                  : NAV_ITEMS.find((i) => i.key === activeKey)?.label ?? ''}
             </Typography.Title>
             <Typography.Text type="secondary">
-              {products.length} sản phẩm · Tổng giá trị {formatPrice(totalValue)}
+              {activeKey === 'products'
+                ? `${products.length} sản phẩm · Tổng giá trị ${formatPrice(totalValue)}`
+                : `${products.length} sản phẩm đang được quản lý`}
             </Typography.Text>
           </div>
-          <Space wrap>
-            <Input
-              className="search-input"
-              prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm sản phẩm..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              allowClear
-            />
-            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
-              Thêm sản phẩm
-            </Button>
-          </Space>
+          {activeKey === 'products' && (
+            <Space wrap>
+              <Input
+                className="search-input"
+                prefix={<SearchOutlined />}
+                placeholder="Tìm kiếm sản phẩm..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                allowClear
+              />
+              <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+                Thêm sản phẩm
+              </Button>
+            </Space>
+          )}
         </Layout.Header>
 
         <Layout.Content className="content">
@@ -297,18 +300,35 @@ function AppContent() {
             />
           )}
 
-          <Table<Product>
-            className="data-table"
-            rowKey="id"
-            columns={columns}
-            dataSource={filtered}
-            loading={loading}
-            pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `${t} sản phẩm` }}
-            scroll={{ x: 'max-content' }}
-            locale={{
-              emptyText: query.trim() ? 'Không tìm thấy sản phẩm nào' : 'Chưa có sản phẩm nào',
-            }}
-          />
+          {loading && activeKey !== 'dashboard' ? (
+            <Card loading style={{ marginTop: 16 }} />
+          ) : null}
+
+          {!loading &&
+            (activeKey === 'dashboard' ? (
+              <Dashboard products={products} />
+            ) : activeKey === 'products' ? (
+              <Table<Product>
+                className="data-table"
+                rowKey="id"
+                columns={columns}
+                dataSource={filtered}
+                loading={loading}
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: false,
+                  showTotal: (t) => `${t} sản phẩm`,
+                }}
+                scroll={{ x: 'max-content' }}
+                locale={{
+                  emptyText: query.trim() ? 'Không tìm thấy sản phẩm nào' : 'Chưa có sản phẩm nào',
+                }}
+              />
+            ) : (
+              <Card style={{ marginTop: 16 }}>
+                <Empty description="Trang này đang được xây dựng" />
+              </Card>
+            ))}
         </Layout.Content>
       </Layout>
 
