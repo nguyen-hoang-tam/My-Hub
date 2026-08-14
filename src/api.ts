@@ -15,16 +15,32 @@ export type ProductInput = {
   quantity: number
 }
 
-export type ZnsConfig = {
+export type ZnsConfigItem = {
+  id: string
+  name: string
   accessToken: string
   templateId: string
   phone: string
+  templateData: Record<string, string>
+  trackingId: string
+  enabled: boolean
+  createdAt: number
+  updatedAt: number
 }
 
-export type ZnsTemplateData = Record<string, string>
+export type ZnsConfigInput = {
+  name: string
+  accessToken: string
+  templateId: string
+  phone: string
+  templateData: Record<string, string>
+  trackingId: string
+  enabled: boolean
+}
 
 export type ZnsSendInput = {
-  templateData: ZnsTemplateData
+  configId: string
+  templateData?: Record<string, string>
   trackingId?: string
 }
 
@@ -74,14 +90,29 @@ export const api = {
 }
 
 export const znsApi = {
-  getConfig: (signal?: AbortSignal): Promise<ZnsConfig> =>
-    request<ZnsConfig>('/api/zns/config', { signal }),
+  listConfigs: (signal?: AbortSignal): Promise<ZnsConfigItem[]> =>
+    request<ZnsConfigItem[]>('/api/zns/configs', { signal }),
 
-  saveConfig: (config: ZnsConfig): Promise<ZnsConfig> =>
-    request<ZnsConfig>('/api/zns/config', {
-      method: 'PUT',
-      body: JSON.stringify(config),
+  getConfig: (id: string): Promise<ZnsConfigItem> =>
+    request<ZnsConfigItem>(`/api/zns/configs/${id}`),
+
+  createConfig: (input: ZnsConfigInput): Promise<ZnsConfigItem> =>
+    request<ZnsConfigItem>('/api/zns/configs', {
+      method: 'POST',
+      body: JSON.stringify(input),
     }),
+
+  updateConfig: (id: string, input: ZnsConfigInput): Promise<ZnsConfigItem> =>
+    request<ZnsConfigItem>(`/api/zns/configs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  toggleConfig: (id: string): Promise<ZnsConfigItem> =>
+    request<ZnsConfigItem>(`/api/zns/configs/${id}/toggle`, { method: 'PATCH' }),
+
+  deleteConfig: (id: string): Promise<{ ok: boolean }> =>
+    request<{ ok: boolean }>(`/api/zns/configs/${id}`, { method: 'DELETE' }),
 
   send: (input: ZnsSendInput): Promise<ZnsSendResult> =>
     request<ZnsSendResult>('/api/zns/send', {

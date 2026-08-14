@@ -33,7 +33,7 @@ import {
 import { api, type Product, type ProductInput } from './api'
 import Dashboard from './Dashboard'
 import { formatDate, formatPrice } from './format'
-import ZnsConfig from './ZnsConfig'
+import ZnsConfigs from './ZnsConfigs'
 import './App.css'
 
 type ProductFormValues = {
@@ -333,7 +333,7 @@ function AppContent() {
                 }}
               />
             ) : activeKey === 'zns' ? (
-              <ZnsConfig />
+              <ZnsConfigs />
             ) : (
               <Card style={{ marginTop: 16 }}>
                 <Empty description="Trang này đang được xây dựng" />
