@@ -17,40 +17,27 @@ export type ProductInput = {
 
 export type ZnsConfigItem = {
   id: string
+  partnerId: string
+  type: string
+  category: string
   name: string
-  accessToken: string
-  templateId: string
-  phone: string
-  templateData: Record<string, string>
-  trackingId: string
-  enabled: boolean
-  mapping: Record<string, string>
-  triggers: string[]
+  zaloTemplateId: string
+  zaloTemplate: string
+  variables: string[]
+  sampleMessage: string
   createdAt: number
   updatedAt: number
 }
 
 export type ZnsConfigInput = {
-  name: string
-  accessToken: string
-  templateId: string
-  phone: string
-  templateData: Record<string, string>
-  trackingId: string
-  enabled: boolean
-  mapping: Record<string, string>
-  triggers: string[]
-}
-
-export type ZaloTemplate = {
-  id: string
-  templateId: string
-  name: string
+  partnerId: string
   type: string
-  status: string
-  purpose: string
-  price: number
-  registeredAt: number
+  category: string
+  name: string
+  zaloTemplateId: string
+  zaloTemplate: string
+  variables: string[]
+  sampleMessage: string
 }
 
 export type ZnsHistoryItem = {
@@ -64,20 +51,6 @@ export type ZnsHistoryItem = {
   error: string
   request: unknown
   response: unknown
-}
-
-export type ZnsSendInput = {
-  configId: string
-  templateData?: Record<string, string>
-  trackingId?: string
-  phone?: string
-  orderId?: string
-}
-
-export type ZnsSendResult = {
-  status: number
-  ok: boolean
-  data: unknown
 }
 
 const BASE = '/api/products'
@@ -120,18 +93,6 @@ export const api = {
 }
 
 export const znsApi = {
-  getTemplates: (signal?: AbortSignal): Promise<ZaloTemplate[]> =>
-    request<ZaloTemplate[]>('/api/zns/templates', { signal }),
-
-  seedTemplates: (): Promise<ZnsSendResult> =>
-    request<ZnsSendResult>('/api/zns/templates/seed', { method: 'POST' }),
-
-  syncTemplates: (accessToken: string): Promise<ZnsSendResult> =>
-    request<ZnsSendResult>('/api/zns/templates/sync', {
-      method: 'POST',
-      body: JSON.stringify({ accessToken }),
-    }),
-
   listHistory: (signal?: AbortSignal): Promise<ZnsHistoryItem[]> =>
     request<ZnsHistoryItem[]>('/api/zns/history', { signal }),
 
@@ -153,15 +114,6 @@ export const znsApi = {
       body: JSON.stringify(input),
     }),
 
-  toggleConfig: (id: string): Promise<ZnsConfigItem> =>
-    request<ZnsConfigItem>(`/api/zns/configs/${id}/toggle`, { method: 'PATCH' }),
-
   deleteConfig: (id: string): Promise<{ ok: boolean }> =>
     request<{ ok: boolean }>(`/api/zns/configs/${id}`, { method: 'DELETE' }),
-
-  send: (input: ZnsSendInput): Promise<ZnsSendResult> =>
-    request<ZnsSendResult>('/api/zns/send', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
 }

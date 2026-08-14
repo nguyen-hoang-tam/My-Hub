@@ -30,11 +30,10 @@ import {
   ShoppingCartOutlined,
   TagOutlined,
 } from '@ant-design/icons'
-import { api, type Product, type ProductInput, type ZaloTemplate } from './api'
+import { api, type Product, type ProductInput } from './api'
 import Dashboard from './Dashboard'
 import { formatDate, formatPrice } from './format'
-import ZnsTemplates from './ZnsTemplates'
-import ZnsConfigEditor from './ZnsConfigEditor'
+import ZnsConfigs from './ZnsConfigs'
 import ZnsHistory from './ZnsHistory'
 import './App.css'
 
@@ -84,7 +83,6 @@ function AppContent() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const [activeKey, setActiveKey] = useState('products')
-  const [configuring, setConfiguring] = useState<ZaloTemplate | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -261,10 +259,7 @@ function AppContent() {
           mode="inline"
           selectedKeys={[activeKey]}
           items={NAV_ITEMS}
-          onClick={({ key }) => {
-            setActiveKey(key)
-            setConfiguring(null)
-          }}
+          onClick={({ key }) => setActiveKey(key)}
         />
         <div className="sidebar-footer">
           <Avatar size={36} className="user-avatar">
@@ -345,15 +340,7 @@ function AppContent() {
                 }}
               />
             ) : activeKey === 'zns' ? (
-              configuring ? (
-                <ZnsConfigEditor
-                  template={configuring}
-                  onBack={() => setConfiguring(null)}
-                  onSaved={() => setConfiguring(configuring)}
-                />
-              ) : (
-                <ZnsTemplates onConfigure={setConfiguring} />
-              )
+              <ZnsConfigs />
             ) : activeKey === 'zns-history' ? (
               <ZnsHistory />
             ) : (
