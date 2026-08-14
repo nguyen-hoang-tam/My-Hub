@@ -17,9 +17,6 @@ type ConfigValues = {
   accessToken: string
   templateId: string
   phone: string
-}
-
-type TemplateValues = {
   ky?: string
   thang?: string
   start_date?: string
@@ -36,14 +33,13 @@ const EMPTY_CONFIG: ZnsConfigData = { accessToken: '', templateId: '', phone: ''
 
 function ZnsConfig() {
   const { message } = AntApp.useApp()
-  const [configForm] = Form.useForm<ConfigValues>()
-  const [templateForm] = Form.useForm<TemplateValues>()
+  const [form] = Form.useForm<ConfigValues>()
 
   const [config, setConfig] = useState<ZnsConfigData>(EMPTY_CONFIG)
   const [configSaving, setConfigSaving] = useState(false)
   const [sending, setSending] = useState(false)
 
-  const templateValues = Form.useWatch<TemplateValues>([], templateForm) ?? {}
+  const formValues = Form.useWatch<ConfigValues>([], form) ?? {}
 
   useEffect(() => {
     const controller = new AbortController()
@@ -51,7 +47,7 @@ function ZnsConfig() {
       .getConfig(controller.signal)
       .then((cfg) => {
         setConfig(cfg)
-        configForm.setFieldsValue({
+        form.setFieldsValue({
           accessToken: cfg.accessToken,
           templateId: cfg.templateId,
           phone: cfg.phone,
@@ -59,10 +55,10 @@ function ZnsConfig() {
       })
       .catch(() => {})
     return () => controller.abort()
-  }, [configForm])
+  }, [form])
 
   async function handleSaveConfig() {
-    const values = await configForm.validateFields().catch(() => null)
+    const values = await form.validateFields().catch(() => null)
     if (!values) return
     setConfigSaving(true)
     try {
@@ -81,14 +77,19 @@ function ZnsConfig() {
   }
 
   async function handleSend() {
-    const values = await templateForm.validateFields().catch(() => null)
+    const values = await form.validateFields().catch(() => null)
     if (!values) return
-    const { tracking_id, ...rest } = values
+    const { accessToken, templateId, phone, tracking_id, ...templateData } = values
     setSending(true)
     try {
+      await znsApi.saveConfig({
+        accessToken: accessToken.trim(),
+        templateId: templateId.trim(),
+        phone: phone.trim(),
+      })
       const result = await znsApi.send({
         templateData: Object.fromEntries(
-          Object.entries(rest).filter(([, v]) => v !== undefined && v !== '')
+          Object.entries(templateData).filter(([, v]) => v !== undefined && v !== '')
         ),
         trackingId: tracking_id,
       })
@@ -105,56 +106,53 @@ function ZnsConfig() {
   }
 
   const requestPayload = {
-    phone: config.phone,
-    template_id: config.templateId,
+    phone: formValues.phone ?? config.phone,
+    template_id: formValues.templateId ?? config.templateId,
     template_data: {
-      ky: templateValues.ky ?? '',
-      thang: templateValues.thang ?? '',
-      start_date: templateValues.start_date ?? '',
-      end_date: templateValues.end_date ?? '',
-      customer: templateValues.customer ?? '',
-      cid: templateValues.cid ?? '',
-      address: templateValues.address ?? '',
-      amount: templateValues.amount ?? '',
-      total: templateValues.total ?? '',
+      ky: formValues.ky ?? '',
+      thang: formValues.thang ?? '',
+      start_date: formValues.start_date ?? '',
+      end_date: formValues.end_date ?? '',
+      customer: formValues.customer ?? '',
+      cid: formValues.cid ?? '',
+      address: formValues.address ?? '',
+      amount: formValues.amount ?? '',
+      total: formValues.total ?? '',
     },
-    tracking_id: templateValues.tracking_id ?? '',
+    tracking_id: formValues.tracking_id ?? '',
   }
 
-  const t = templateValues
+  const t = formValues
 
   return (
     <Row gutter={[24, 24]}>
-      <Col xs={24} lg={9}>
+      <Col xs={24} lg={12}>
         <Card title="Cấu hình ZNS">
-          <Form form={configForm} layout="vertical" requiredMark={false}>
+          <Form form={form} layout="vertical" requiredMark={false}>
             <Form.Item
               name="accessToken"
-              label="Access Token"
+              label="Access Token (header access_token)"
               rules={[{ required: true, message: 'Vui lòng nhập Access Token' }]}
             >
               <Input.Password placeholder="Nhập Access Token" />
             </Form.Item>
             <Form.Item
+              name="phone"
+              label="Số điện thoại (phone)"
+              rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}
+            >
+              <Input placeholder="VD: 84987654321" />
+            </Form.Item>
+            <Form.Item
               name="templateId"
-              label="Template ID"
+              label="Template ID (template_id)"
               rules={[{ required: true, message: 'Vui lòng nhập Template ID' }]}
             >
               <Input placeholder="VD: 7895417a7d3f9461cd2e" />
             </Form.Item>
-            <Form.Item name="phone" label="Số điện thoại người nhận">
-              <Input placeholder="VD: 84987654321" />
-            </Form.Item>
-            <Button type="primary" loading={configSaving} onClick={handleSaveConfig}>
-              Lưu cấu hình
-            </Button>
-          </Form>
-        </Card>
-      </Col>
 
-      <Col xs={24} lg={15}>
-        <Card title="Xem trước template & gửi ZNS">
-          <Form form={templateForm} layout="vertical" requiredMark={false}>
+            <Divider plain>Template data</Divider>
+
             <Row gutter={12}>
               <Col span={12}>
                 <Form.Item name="ky" label="Kỳ (ky)">
@@ -201,16 +199,21 @@ function ZnsConfig() {
                   <Input placeholder="100000" />
                 </Form.Item>
               </Col>
-              <Col span={24}>
-                <Form.Item name="tracking_id" label="Tracking ID (không bắt buộc)">
-                  <Input placeholder="tracking_id" />
-                </Form.Item>
-              </Col>
             </Row>
+
+            <Form.Item name="tracking_id" label="Tracking ID (tracking_id)">
+              <Input placeholder="tracking_id" />
+            </Form.Item>
+
+            <Button type="primary" loading={configSaving} onClick={handleSaveConfig}>
+              Lưu cấu hình
+            </Button>
           </Form>
+        </Card>
+      </Col>
 
-          <Divider plain>Xem trước tin nhắn</Divider>
-
+      <Col xs={24} lg={12}>
+        <Card title="Xem trước template">
           <div className="zns-preview">
             <div className="zns-preview-avatar">Z</div>
             <div className="zns-preview-bubble">
@@ -247,7 +250,7 @@ function ZnsConfig() {
             </div>
           </div>
 
-          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 12 }}>
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 16 }}>
             Payload gửi đến Zalo API:
           </Typography.Text>
           <pre className="zns-payload">{JSON.stringify(requestPayload, null, 2)}</pre>
@@ -258,7 +261,6 @@ function ZnsConfig() {
             loading={sending}
             onClick={handleSend}
             style={{ marginTop: 12 }}
-            disabled={!config.accessToken || !config.templateId}
           >
             Gửi ZNS
           </Button>
