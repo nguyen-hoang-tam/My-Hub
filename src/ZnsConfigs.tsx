@@ -12,13 +12,22 @@ import {
   Select,
   Space,
   Table,
+  Tag,
   Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons'
+import {
+  ArrowLeftOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+  SaveOutlined,
+} from '@ant-design/icons'
 import { znsApi, type ZnsConfigInput, type ZnsConfigItem } from './api'
 import { CATEGORY_OPTIONS, PARTNER_OPTIONS, PUSHSALE_VARS, TYPE_OPTIONS, extractVariables } from './zns'
 import { formatDate } from './format'
+import ZnsConfigScreen from './ZnsConfigScreen'
 import './ZnsConfig.css'
 
 type FormValues = {
@@ -59,6 +68,7 @@ function ZnsConfigs() {
 
   const [editing, setEditing] = useState<ZnsConfigItem | null>(null)
   const [creating, setCreating] = useState(false)
+  const [using, setUsing] = useState<ZnsConfigItem | null>(null)
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -149,6 +159,11 @@ function ZnsConfigs() {
         .map((v) => v.trim().replace(/[{}]/g, ''))
         .filter(Boolean),
       sampleMessage: values.sampleMessage.trim(),
+      accessToken: '',
+      phone: '',
+      mapping: {},
+      events: [],
+      ready: false,
     }
     setSaving(true)
     try {
@@ -191,6 +206,19 @@ function ZnsConfigs() {
   }
 
   const editorOpen = creating || editing !== null
+
+  if (using) {
+    return (
+      <ZnsConfigScreen
+        config={using}
+        onBack={() => setUsing(null)}
+        onSaved={() => {
+          setUsing(null)
+          reload()
+        }}
+      />
+    )
+  }
 
   if (editorOpen) {
     const isEdit = editing !== null
@@ -377,6 +405,19 @@ function ZnsConfigs() {
       render: (value: string) => value || '—',
     },
     {
+      title: 'Trạng thái',
+      key: 'status',
+      width: 140,
+      render: (_, item) =>
+        item.ready ? (
+          <Tag color="success" icon={<PlayCircleOutlined />}>
+            Sẵn sàng
+          </Tag>
+        ) : (
+          <Tag>Chưa cấu hình</Tag>
+        ),
+    },
+    {
       title: 'Cập nhật',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
@@ -387,10 +428,13 @@ function ZnsConfigs() {
       title: 'Thao tác',
       key: 'actions',
       align: 'right',
-      width: 160,
+      width: 230,
       render: (_, item) => (
         <Space>
-          <Button size="small" type="primary" ghost icon={<EditOutlined />} onClick={() => openEdit(item)}>
+          <Button size="small" type="primary" icon={<PlayCircleOutlined />} onClick={() => setUsing(item)}>
+            Sử dụng
+          </Button>
+          <Button size="small" ghost icon={<EditOutlined />} onClick={() => openEdit(item)}>
             Sửa
           </Button>
           <Button
