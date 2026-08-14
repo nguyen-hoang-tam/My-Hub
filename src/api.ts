@@ -24,6 +24,8 @@ export type ZnsConfigItem = {
   templateData: Record<string, string>
   trackingId: string
   enabled: boolean
+  mapping: Record<string, string>
+  triggers: string[]
   createdAt: number
   updatedAt: number
 }
@@ -36,12 +38,40 @@ export type ZnsConfigInput = {
   templateData: Record<string, string>
   trackingId: string
   enabled: boolean
+  mapping: Record<string, string>
+  triggers: string[]
+}
+
+export type ZaloTemplate = {
+  id: string
+  templateId: string
+  name: string
+  type: string
+  status: string
+  purpose: string
+  price: number
+  registeredAt: number
+}
+
+export type ZnsHistoryItem = {
+  id: string
+  orderId: string
+  phone: string
+  templateId: string
+  templateName: string
+  sentAt: number
+  status: 'success' | 'failed'
+  error: string
+  request: unknown
+  response: unknown
 }
 
 export type ZnsSendInput = {
   configId: string
   templateData?: Record<string, string>
   trackingId?: string
+  phone?: string
+  orderId?: string
 }
 
 export type ZnsSendResult = {
@@ -90,6 +120,21 @@ export const api = {
 }
 
 export const znsApi = {
+  getTemplates: (signal?: AbortSignal): Promise<ZaloTemplate[]> =>
+    request<ZaloTemplate[]>('/api/zns/templates', { signal }),
+
+  seedTemplates: (): Promise<ZnsSendResult> =>
+    request<ZnsSendResult>('/api/zns/templates/seed', { method: 'POST' }),
+
+  syncTemplates: (accessToken: string): Promise<ZnsSendResult> =>
+    request<ZnsSendResult>('/api/zns/templates/sync', {
+      method: 'POST',
+      body: JSON.stringify({ accessToken }),
+    }),
+
+  listHistory: (signal?: AbortSignal): Promise<ZnsHistoryItem[]> =>
+    request<ZnsHistoryItem[]>('/api/zns/history', { signal }),
+
   listConfigs: (signal?: AbortSignal): Promise<ZnsConfigItem[]> =>
     request<ZnsConfigItem[]>('/api/zns/configs', { signal }),
 

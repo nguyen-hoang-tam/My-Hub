@@ -122,3 +122,70 @@
   color: rgba(0, 0, 0, 0.88);
   word-break: break-all;
 }
+
+.zns-section-card {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.zns-section-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: rgba(0, 0, 0, 0.88);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zns-section-title::before {
+  content: '';
+  width: 4px;
+  height: 15px;
+  border-radius: 2px;
+  background: #1677ff;
+}
+
+.mapping-table {
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mapping-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.mapping-row:first-child {
+  border-top: none;
+}
+
+.mapping-head {
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.mapping-param code {
+  background: #f0f5ff;
+  color: #1677ff;
+  border: 1px solid #d6e4ff;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 13px;
+}
+
+.mapping-select {
+  width: 100%;
+}

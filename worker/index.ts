@@ -19,12 +19,41 @@ interface ZnsConfigItem {
   templateData: Record<string, string>;
   trackingId: string;
   enabled: boolean;
+  mapping: Record<string, string>;
+  triggers: string[];
   createdAt: number;
   updatedAt: number;
 }
 
+interface ZaloTemplate {
+  id: string;
+  templateId: string;
+  name: string;
+  type: string;
+  status: string;
+  purpose: string;
+  price: number;
+  registeredAt: number;
+}
+
+interface ZnsHistoryItem {
+  id: string;
+  orderId: string;
+  phone: string;
+  templateId: string;
+  templateName: string;
+  sentAt: number;
+  status: "success" | "failed";
+  error: string;
+  request: unknown;
+  response: unknown;
+}
+
 const ZNS_PREFIX = "zns:";
+const ZNS_LOG_PREFIX = "znslog:";
+const ZNS_TEMPLATES_KEY = "zns_templates";
 const ZALO_ZNS_URL = "https://business.openapi.zalo.me/message/template";
+const ZALO_TEMPLATE_LIST_URL = "https://business.openapi.zalo.me/message/template?offset=0&limit=50";
 
 function keyOf(id: string): string {
   return `${KEY_PREFIX}${id}`;
@@ -32,6 +61,10 @@ function keyOf(id: string): string {
 
 function znsKeyOf(id: string): string {
   return `${ZNS_PREFIX}${id}`;
+}
+
+function znsLogKeyOf(id: string): string {
+  return `${ZNS_LOG_PREFIX}${id}`;
 }
 
 async function listZnsConfigs(env: Env): Promise<ZnsConfigItem[]> {
@@ -51,7 +84,7 @@ function parseZnsBody(body: Record<string, unknown>): {
   error?: string;
   item?: Omit<ZnsConfigItem, "id" | "createdAt" | "updatedAt">;
 } {
-  const { name, accessToken, templateId, phone, templateData, trackingId, enabled } = body;
+  const { name, accessToken, templateId, phone, templateData, trackingId, enabled, mapping, triggers } = body;
   if (typeof name !== "string" || name.trim() === "") return { error: "Name is required" };
   if (typeof accessToken !== "string" || accessToken.trim() === "") {
     return { error: "accessToken is required" };
@@ -71,8 +104,58 @@ function parseZnsBody(body: Record<string, unknown>): {
           : {},
       trackingId: typeof trackingId === "string" ? trackingId : "",
       enabled: enabled === undefined ? true : Boolean(enabled),
+      mapping:
+        mapping && typeof mapping === "object"
+          ? (mapping as Record<string, string>)
+          : {},
+      triggers: Array.isArray(triggers) ? triggers.filter((t): t is string => typeof t === "string") : [],
     },
   };
+}
+
+async function listTemplates(env: Env): Promise<ZaloTemplate[]> {
+  const raw = await env.PRODUCTS.get(ZNS_TEMPLATES_KEY);
+  return raw ? (JSON.parse(raw) as ZaloTemplate[]) : [];
+}
+
+async function syncTemplates(env: Env, accessToken: string): Promise<{ ok: boolean; status: number; data: unknown }> {
+  const zaloRes = await fetch(ZALO_TEMPLATE_LIST_URL, {
+    method: "GET",
+    headers: { access_token: accessToken },
+  });
+  const zaloData = await zaloRes.json().catch(() => null);
+  if (!zaloRes.ok || !zaloData || typeof zaloData !== "object" || !("data" in zaloData)) {
+    return { ok: zaloRes.ok, status: zaloRes.status, data: zaloData };
+  }
+  const data = zaloData as { data: { templates?: unknown[] } };
+  const templates: ZaloTemplate[] = (data.data.templates ?? []).map((t, i) => {
+    const template = t as Record<string, unknown>;
+    return {
+      id: String(template.template_id ?? makeId()),
+      templateId: String(template.template_id ?? ""),
+      name: String(template.template_name ?? "Unknown"),
+      type: String(template.template_type ?? "Paragraph"),
+      status: String(template.template_status ?? "WAIT"),
+      purpose: String(template.purpose ?? ""),
+      price: typeof template.price === "number" ? template.price : 0,
+      registeredAt: Date.now() - i * 86400000,
+    };
+  });
+  await env.PRODUCTS.put(ZNS_TEMPLATES_KEY, JSON.stringify(templates));
+  return { ok: true, status: 200, data: templates };
+}
+
+async function listHistory(env: Env): Promise<ZnsHistoryItem[]> {
+  const list = await env.PRODUCTS.list({ prefix: ZNS_LOG_PREFIX });
+  const items = await Promise.all(
+    list.keys.map(async ({ name }) => {
+      const raw = await env.PRODUCTS.get(name);
+      return raw ? (JSON.parse(raw) as ZnsHistoryItem) : null;
+    })
+  );
+  return items
+    .filter((h): h is ZnsHistoryItem => h !== null)
+    .sort((a, b) => b.sentAt - a.sentAt);
 }
 
 async function handleZns(
@@ -82,6 +165,41 @@ async function handleZns(
   method: string
 ): Promise<Response> {
   const [, action, id, sub] = segments;
+
+  if (action === "templates") {
+    if (method === "GET" && !id) {
+      return Response.json(await listTemplates(env));
+    }
+    if (method === "POST" && id === "seed") {
+      const now = Date.now();
+      const samples: ZaloTemplate[] = [
+        { id: "t1", templateId: "7895417a7d3f9461cd2e", name: "Xác nhận đơn hàng", type: "Table", status: "ENABLE", purpose: "Giao dịch (IN_TRANSACTION)", price: 150, registeredAt: now - 4 * 86400000 },
+        { id: "t2", templateId: "e12a9c0b7f2d84a1b0c3", name: "Thông báo giao hàng", type: "Paragraph", status: "ENABLE", purpose: "Giao dịch (IN_TRANSACTION)", price: 150, registeredAt: now - 4 * 86400000 },
+        { id: "t3", templateId: "9c41a6e8d1b74f2a90e5", name: "Mã OTP xác thực", type: "OTP", status: "WAIT", purpose: "Xác thực tài khoản", price: 250, registeredAt: now - 5 * 86400000 },
+        { id: "t4", templateId: "b27f0d3a9e5c8146f2a7", name: "Đánh giá dịch vụ", type: "Rating", status: "REJECT", purpose: "Chăm sóc khách hàng", price: 300, registeredAt: now - 6 * 86400000 },
+        { id: "t5", templateId: "6d1e8b4f2a9c3075d1e6", name: "Nhắc thanh toán hóa đơn", type: "Paragraph", status: "ENABLE", purpose: "Giao dịch (IN_TRANSACTION)", price: 150, registeredAt: now - 6 * 86400000 },
+        { id: "t6", templateId: "a34f1c7d8e2b9506c4f1", name: "Khuyến mãi sản phẩm mới", type: "Paragraph", status: "WAIT", purpose: "Quảng cáo", price: 500, registeredAt: now - 7 * 86400000 },
+      ];
+      await env.PRODUCTS.put(ZNS_TEMPLATES_KEY, JSON.stringify(samples));
+      return Response.json({ ok: true, status: 200, data: samples });
+    }
+    if (method === "POST" && id === "sync") {
+      const body = (await request.json()) as { accessToken?: string };
+      if (!body.accessToken || body.accessToken.trim() === "") {
+        return jsonError("accessToken is required", 400);
+      }
+      const result = await syncTemplates(env, body.accessToken.trim());
+      return Response.json(result, { status: result.ok ? 200 : result.status });
+    }
+    return jsonError("Method not allowed", 405);
+  }
+
+  if (action === "history") {
+    if (method === "GET") {
+      return Response.json(await listHistory(env));
+    }
+    return jsonError("Method not allowed", 405);
+  }
 
   if (action === "configs") {
     if (method === "GET" && !id) {
@@ -134,6 +252,8 @@ async function handleZns(
       configId: string;
       templateData?: Record<string, string>;
       trackingId?: string;
+      phone?: string;
+      orderId?: string;
     };
     const raw = await env.PRODUCTS.get(znsKeyOf(body.configId));
     if (!raw) return jsonError("Config not found", 404);
@@ -141,23 +261,54 @@ async function handleZns(
     if (!config.enabled) return jsonError("Config is disabled", 400);
 
     const payload: Record<string, unknown> = {
-      phone: config.phone,
+      phone: body.phone ?? config.phone,
       template_id: config.templateId,
       template_data: body.templateData ?? config.templateData ?? {},
     };
     const trackingId = body.trackingId ?? config.trackingId;
     if (trackingId) payload.tracking_id = trackingId;
 
-    const zaloRes = await fetch(ZALO_ZNS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        access_token: config.accessToken,
-      },
-      body: JSON.stringify(payload),
-    });
-    const zaloData = await zaloRes.json().catch(() => null);
-    return Response.json({ status: zaloRes.status, ok: zaloRes.ok, data: zaloData });
+    let zaloRes: Response;
+    let zaloData: unknown;
+    try {
+      zaloRes = await fetch(ZALO_ZNS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          access_token: config.accessToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      zaloData = await zaloRes.json().catch(() => null);
+    } catch (err) {
+      zaloData = { networkError: err instanceof Error ? err.message : String(err) };
+      zaloRes = new Response(null, { status: 500 });
+    }
+
+    const zaloError =
+      zaloData &&
+      typeof zaloData === "object" &&
+      "error" in zaloData
+        ? (zaloData as { error?: unknown }).error
+        : undefined;
+    const isSuccess =
+      zaloRes.ok && (zaloError === undefined || zaloError === null || zaloError === 0);
+
+    const log: ZnsHistoryItem = {
+      id: makeId(),
+      orderId: body.orderId ?? "",
+      phone: String(payload.phone ?? ""),
+      templateId: config.templateId,
+      templateName: config.name,
+      sentAt: Date.now(),
+      status: isSuccess ? "success" : "failed",
+      error: isSuccess ? "" : typeof zaloData === "string" ? zaloData : JSON.stringify(zaloData ?? {}),
+      request: payload,
+      response: zaloData,
+    };
+    await env.PRODUCTS.put(znsLogKeyOf(log.id), JSON.stringify(log));
+
+    return Response.json({ status: zaloRes.status, ok: isSuccess, data: zaloData });
   }
 
   return jsonError("Method not allowed", 405);
@@ -293,7 +444,7 @@ export default {
           quantity: fields.quantity !== undefined ? valid.quantity : existing.quantity,
           updatedAt: now,
         };
-        await env.PRODUCTS.put(keyOf(id), JSON.stringify(product));
+        await env.PRODUCTS.put(keyOf(product.id), JSON.stringify(product));
         return Response.json(product);
       }
 

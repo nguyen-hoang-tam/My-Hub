@@ -30,10 +30,12 @@ import {
   ShoppingCartOutlined,
   TagOutlined,
 } from '@ant-design/icons'
-import { api, type Product, type ProductInput } from './api'
+import { api, type Product, type ProductInput, type ZaloTemplate } from './api'
 import Dashboard from './Dashboard'
 import { formatDate, formatPrice } from './format'
-import ZnsConfigs from './ZnsConfigs'
+import ZnsTemplates from './ZnsTemplates'
+import ZnsConfigEditor from './ZnsConfigEditor'
+import ZnsHistory from './ZnsHistory'
 import './App.css'
 
 type ProductFormValues = {
@@ -53,7 +55,10 @@ const NAV_ITEMS = [
     key: 'settings',
     icon: <SettingOutlined />,
     label: 'Cài đặt',
-    children: [{ key: 'zns', label: 'Cấu hình ZNS' }],
+    children: [
+      { key: 'zns', label: 'Cấu hình ZNS' },
+      { key: 'zns-history', label: 'Lịch sử gửi ZNS' },
+    ],
   },
 ]
 
@@ -61,6 +66,7 @@ const PAGE_TITLES: Record<string, string> = {
   dashboard: 'Tổng quan',
   products: 'Sản phẩm',
   zns: 'Cấu hình ZNS',
+  'zns-history': 'Lịch sử gửi ZNS',
 }
 
 function AppContent() {
@@ -78,6 +84,7 @@ function AppContent() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const [activeKey, setActiveKey] = useState('products')
+  const [configuring, setConfiguring] = useState<ZaloTemplate | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -254,7 +261,10 @@ function AppContent() {
           mode="inline"
           selectedKeys={[activeKey]}
           items={NAV_ITEMS}
-          onClick={({ key }) => setActiveKey(key)}
+          onClick={({ key }) => {
+            setActiveKey(key)
+            setConfiguring(null)
+          }}
         />
         <div className="sidebar-footer">
           <Avatar size={36} className="user-avatar">
@@ -276,7 +286,9 @@ function AppContent() {
             <Typography.Text type="secondary">
               {activeKey === 'products'
                 ? `${products.length} sản phẩm · Tổng giá trị ${formatPrice(totalValue)}`
-                : `${products.length} sản phẩm đang được quản lý`}
+                : activeKey === 'zns' || activeKey === 'zns-history'
+                  ? 'Quản lý thông báo Zalo ZNS'
+                  : `${products.length} sản phẩm đang được quản lý`}
             </Typography.Text>
           </div>
           {activeKey === 'products' && (
@@ -333,7 +345,17 @@ function AppContent() {
                 }}
               />
             ) : activeKey === 'zns' ? (
-              <ZnsConfigs />
+              configuring ? (
+                <ZnsConfigEditor
+                  template={configuring}
+                  onBack={() => setConfiguring(null)}
+                  onSaved={() => setConfiguring(configuring)}
+                />
+              ) : (
+                <ZnsTemplates onConfigure={setConfiguring} />
+              )
+            ) : activeKey === 'zns-history' ? (
+              <ZnsHistory />
             ) : (
               <Card style={{ marginTop: 16 }}>
                 <Empty description="Trang này đang được xây dựng" />
