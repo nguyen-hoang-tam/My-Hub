@@ -16,6 +16,7 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
+  ArrowLeftOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
@@ -155,8 +156,7 @@ function ZnsConfigs() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editing, setEditing] = useState<ZnsConfigItem | null>(null)
+  const [editingPage, setEditingPage] = useState<ZnsConfigItem | 'new' | null>(null)
   const [saving, setSaving] = useState(false)
 
   const [detail, setDetail] = useState<ZnsConfigItem | null>(null)
@@ -182,15 +182,13 @@ function ZnsConfigs() {
   }, [])
 
   function openAdd() {
-    setEditing(null)
+    setEditingPage('new')
     form.setFieldsValue(EMPTY_FORM)
-    setEditorOpen(true)
   }
 
   function openEdit(item: ZnsConfigItem) {
-    setEditing(item)
+    setEditingPage(item)
     form.setFieldsValue(inputToValues(item))
-    setEditorOpen(true)
   }
 
   async function handleSave() {
@@ -199,8 +197,8 @@ function ZnsConfigs() {
     const input = valuesToInput(values)
     setSaving(true)
     try {
-      if (editing) {
-        await znsApi.updateConfig(editing.id, input)
+      if (editingPage && editingPage !== 'new') {
+        await znsApi.updateConfig(editingPage.id, input)
         message.success('Đã cập nhật cấu hình')
       } else {
         await znsApi.createConfig(input)
@@ -208,7 +206,7 @@ function ZnsConfigs() {
       }
       const data = await znsApi.listConfigs()
       setConfigs(data)
-      setEditorOpen(false)
+      setEditingPage(null)
     } catch (e) {
       message.error(e instanceof Error ? e.message : 'Lưu cấu hình thất bại')
     } finally {
@@ -267,6 +265,109 @@ function ZnsConfigs() {
     }
   }
 
+  const previewData = Form.useWatch<Partial<FormValues>>([], form) ?? {}
+
+  if (editingPage) {
+    const isEdit = editingPage !== 'new'
+    return (
+      <Card
+        className="zns-editor"
+        title={
+          <Space>
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => setEditingPage(null)}
+              aria-label="Quay lại"
+            />
+            <span>{isEdit ? `Sửa cấu hình: ${editingPage.name}` : 'Thêm cấu hình ZNS'}</span>
+          </Space>
+        }
+        extra={
+          <Space>
+            <Button onClick={() => setEditingPage(null)}>Hủy</Button>
+            <Button type="primary" loading={saving} onClick={handleSave}>
+              {saving ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Thêm cấu hình'}
+            </Button>
+          </Space>
+        }
+      >
+        <Row gutter={[32, 24]}>
+          <Col xs={24} lg={13}>
+            <Form form={form} layout="vertical" requiredMark={false}>
+              <Row gutter={12}>
+                <Col span={16}>
+                  <Form.Item
+                    name="name"
+                    label="Tên cấu hình"
+                    rules={[{ required: true, whitespace: true, message: 'Nhập tên cấu hình' }]}
+                  >
+                    <Input placeholder="VD: Hóa đơn tiền điện" autoFocus />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="enabled" label="Trạng thái" valuePropName="checked">
+                    <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item
+                name="accessToken"
+                label="Access Token"
+                rules={[{ required: true, message: 'Nhập Access Token' }]}
+              >
+                <Input.Password placeholder="Nhập Access Token" />
+              </Form.Item>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item
+                    name="templateId"
+                    label="Template ID"
+                    rules={[{ required: true, message: 'Nhập Template ID' }]}
+                  >
+                    <Input placeholder="7895417a7d3f9461cd2e" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="phone" label="Số điện thoại người nhận">
+                    <Input placeholder="84987654321" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <div className="zns-form-section">
+                <div className="zns-form-section-title">Template data</div>
+                <Row gutter={12}>
+                  {TEMPLATE_FIELDS.map((field) => (
+                    <Col key={field.key} span={field.half ? 12 : 24}>
+                      <Form.Item name={field.key} label={field.label}>
+                        <Input placeholder={field.placeholder} />
+                      </Form.Item>
+                    </Col>
+                  ))}
+                </Row>
+                <Form.Item name="tracking_id" label="Tracking ID">
+                  <Input placeholder="tracking_id — VD: abc123" />
+                </Form.Item>
+              </div>
+            </Form>
+          </Col>
+
+          <Col xs={24} lg={11}>
+            <div className="zns-preview-panel">
+              <Typography.Text strong>Xem trước tin nhắn:</Typography.Text>
+              <div style={{ marginTop: 12 }}>
+                <TemplatePreview data={previewData as Record<string, string>} />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </Card>
+    )
+  }
+
   const columns: ColumnsType<ZnsConfigItem> = [
     {
       title: 'Tên cấu hình',
@@ -319,7 +420,7 @@ function ZnsConfigs() {
           <Button size="small" icon={<EyeOutlined />} onClick={() => setDetail(item)}>
             Xem
           </Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(item)}>
+          <Button size="small" type="primary" ghost icon={<EditOutlined />} onClick={() => openEdit(item)}>
             Sửa
           </Button>
           <Button
@@ -335,8 +436,6 @@ function ZnsConfigs() {
       ),
     },
   ]
-
-  const previewData = Form.useWatch<Partial<FormValues>>([], form) ?? {}
 
   return (
     <div>
@@ -363,93 +462,6 @@ function ZnsConfigs() {
           locale={{ emptyText: 'Chưa có cấu hình nào. Bấm "Thêm cấu hình" để tạo.' }}
         />
       </Card>
-
-      <Modal
-        open={editorOpen}
-        title={editing ? 'Sửa cấu hình ZNS' : 'Thêm cấu hình ZNS'}
-        okText={editing ? 'Lưu thay đổi' : 'Thêm cấu hình'}
-        cancelText="Hủy"
-        confirmLoading={saving}
-        onOk={handleSave}
-        onCancel={() => setEditorOpen(false)}
-        destroyOnClose
-        width={880}
-        maskClosable={!saving}
-      >
-        <Row gutter={24}>
-          <Col xs={24} md={13}>
-            <Form form={form} layout="vertical" requiredMark={false}>
-              <Row gutter={12}>
-                <Col span={16}>
-                  <Form.Item
-                    name="name"
-                    label="Tên cấu hình"
-                    rules={[{ required: true, whitespace: true, message: 'Nhập tên cấu hình' }]}
-                  >
-                    <Input placeholder="VD: Hóa đơn tiền điện" autoFocus />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="enabled" label="Trạng thái" valuePropName="checked">
-                    <Switch
-                      checkedChildren="Bật"
-                      unCheckedChildren="Tắt"
-                      style={{ marginTop: 2 }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                name="accessToken"
-                label="Access Token"
-                rules={[{ required: true, message: 'Nhập Access Token' }]}
-              >
-                <Input.Password placeholder="Nhập Access Token" />
-              </Form.Item>
-
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item
-                    name="templateId"
-                    label="Template ID"
-                    rules={[{ required: true, message: 'Nhập Template ID' }]}
-                  >
-                    <Input placeholder="7895417a7d3f9461cd2e" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="phone" label="Số điện thoại người nhận">
-                    <Input placeholder="84987654321" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <div className="zns-form-section">
-                <div className="zns-form-section-title">Template data</div>
-                <Row gutter={12}>
-                  {TEMPLATE_FIELDS.map((field) => (
-                    <Col key={field.key} span={field.half ? 12 : 24}>
-                      <Form.Item name={field.key} label={field.label}>
-                        <Input placeholder={field.placeholder} />
-                      </Form.Item>
-                    </Col>
-                  ))}
-                </Row>
-                <Form.Item name="tracking_id" label="Tracking ID">
-                  <Input placeholder="tracking_id — VD: abc123" />
-                </Form.Item>
-              </div>
-            </Form>
-          </Col>
-          <Col xs={24} md={11}>
-            <Typography.Text strong>Xem trước:</Typography.Text>
-            <div style={{ marginTop: 8 }}>
-              <TemplatePreview data={previewData as Record<string, string>} />
-            </div>
-          </Col>
-        </Row>
-      </Modal>
 
       <Modal
         open={detail !== null}
