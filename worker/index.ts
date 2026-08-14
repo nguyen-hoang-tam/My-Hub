@@ -10,8 +10,85 @@ interface Product {
 
 const KEY_PREFIX = "product:";
 
+const ZNS_CONFIG_KEY = "zns_config";
+const ZALO_ZNS_URL = "https://business.openapi.zalo.me/message/template";
+
 function keyOf(id: string): string {
   return `${KEY_PREFIX}${id}`;
+}
+
+async function handleZns(
+  request: Request,
+  env: Env,
+  segments: string[],
+  method: string
+): Promise<Response> {
+  const [, action] = segments;
+
+  if (action === "config") {
+    if (method === "GET") {
+      const raw = await env.PRODUCTS.get(ZNS_CONFIG_KEY);
+      return Response.json(raw ? JSON.parse(raw) : { accessToken: "", templateId: "", phone: "" });
+    }
+
+    if (method === "PUT") {
+      const body = (await request.json()) as Record<string, unknown>;
+      const { accessToken, templateId, phone } = body;
+      if (typeof accessToken !== "string" || accessToken.trim() === "") {
+        return jsonError("accessToken is required", 400);
+      }
+      if (typeof templateId !== "string" || templateId.trim() === "") {
+        return jsonError("templateId is required", 400);
+      }
+      const config = {
+        accessToken: accessToken.trim(),
+        templateId: templateId.trim(),
+        phone: typeof phone === "string" ? phone.trim() : "",
+      };
+      await env.PRODUCTS.put(ZNS_CONFIG_KEY, JSON.stringify(config));
+      return Response.json(config);
+    }
+  }
+
+  if (action === "send") {
+    if (method === "POST") {
+      const raw = await env.PRODUCTS.get(ZNS_CONFIG_KEY);
+      if (!raw) return jsonError("ZNS config not found. Vui lòng lưu cấu hình trước.", 400);
+      const config = JSON.parse(raw) as {
+        accessToken: string;
+        templateId: string;
+        phone: string;
+      };
+      if (!config.accessToken || !config.templateId) {
+        return jsonError("ZNS config is incomplete", 400);
+      }
+
+      const body = (await request.json()) as {
+        templateData?: Record<string, string>;
+        trackingId?: string;
+      };
+
+      const payload: Record<string, unknown> = {
+        phone: config.phone,
+        template_id: config.templateId,
+        template_data: body.templateData ?? {},
+      };
+      if (body.trackingId) payload.tracking_id = body.trackingId;
+
+      const zaloRes = await fetch(ZALO_ZNS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          access_token: config.accessToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      const zaloData = await zaloRes.json().catch(() => null);
+      return Response.json({ status: zaloRes.status, ok: zaloRes.ok, data: zaloData });
+    }
+  }
+
+  return jsonError("Method not allowed", 405);
 }
 
 function jsonError(message: string, status: number): Response {
@@ -87,12 +164,16 @@ export default {
 
     const segments = url.pathname.slice("/api/".length).split("/").filter(Boolean);
     const [resource, id] = segments;
+    const method = request.method;
+
+    if (resource === "zns") {
+      return handleZns(request, env, segments, method);
+    }
 
     if (resource !== "products") {
       return jsonError("Unknown resource", 404);
     }
 
-    const method = request.method;
     const now = Date.now();
 
     try {

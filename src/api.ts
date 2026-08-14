@@ -15,6 +15,25 @@ export type ProductInput = {
   quantity: number
 }
 
+export type ZnsConfig = {
+  accessToken: string
+  templateId: string
+  phone: string
+}
+
+export type ZnsTemplateData = Record<string, string>
+
+export type ZnsSendInput = {
+  templateData: ZnsTemplateData
+  trackingId?: string
+}
+
+export type ZnsSendResult = {
+  status: number
+  ok: boolean
+  data: unknown
+}
+
 const BASE = '/api/products'
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -52,4 +71,21 @@ export const api = {
 
   deleteAll: (): Promise<{ ok: boolean }> =>
     request<{ ok: boolean }>(BASE, { method: 'DELETE' }),
+}
+
+export const znsApi = {
+  getConfig: (signal?: AbortSignal): Promise<ZnsConfig> =>
+    request<ZnsConfig>('/api/zns/config', { signal }),
+
+  saveConfig: (config: ZnsConfig): Promise<ZnsConfig> =>
+    request<ZnsConfig>('/api/zns/config', {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    }),
+
+  send: (input: ZnsSendInput): Promise<ZnsSendResult> =>
+    request<ZnsSendResult>('/api/zns/send', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 }
