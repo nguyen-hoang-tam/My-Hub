@@ -121,14 +121,6 @@ function ZnsHistory() {
   return (
     <div>
       <Card
-        title={
-          <Space direction="vertical" size={0}>
-            <span>Lịch sử gửi ZNS</span>
-            <Typography.Text type="secondary" style={{ fontSize: 13, fontWeight: 400 }}>
-              Theo dõi tình trạng gửi tin nhắn ZNS để kiểm tra và xử lý lỗi
-            </Typography.Text>
-          </Space>
-        }
         extra={
           <Button icon={<ReloadOutlined />} loading={loading} onClick={reload}>
             Làm mới

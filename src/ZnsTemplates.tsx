@@ -13,7 +13,7 @@ import {
   Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { CloudSyncOutlined, DatabaseOutlined, EyeOutlined, SettingOutlined } from '@ant-design/icons'
+import { CloudSyncOutlined, DatabaseOutlined, SettingOutlined } from '@ant-design/icons'
 import { znsApi, type ZaloTemplate } from './api'
 import { statusMeta, typeMeta } from './zns'
 import { TemplatePreview } from './ZnsPreview'
@@ -151,37 +151,25 @@ function ZnsTemplates({ onConfigure }: { onConfigure: (template: ZaloTemplate) =
       title: 'Hành động',
       key: 'actions',
       align: 'right',
-      width: 140,
-      render: (_, item) =>
-        item.status === 'ENABLE' ? (
+      width: 220,
+      render: (_, item) => (
+        <Space>
           <Button type="primary" size="small" icon={<SettingOutlined />} onClick={() => onConfigure(item)}>
             Cấu hình
           </Button>
-        ) : (
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => setViewing(item)}
-            disabled={item.status === 'REJECT'}
-            title={item.status === 'REJECT' ? 'Template bị từ chối bởi Zalo' : undefined}
-          >
-            {item.status === 'REJECT' ? 'Xem lý do' : 'Xem'}
-          </Button>
-        ),
+          {item.status === 'REJECT' && (
+            <Button size="small" onClick={() => setViewing(item)}>
+              Xem lý do
+            </Button>
+          )}
+        </Space>
+      ),
     },
   ]
 
   return (
     <div>
       <Card
-        title={
-          <Space direction="vertical" size={0}>
-            <span>Cấu hình ZNS</span>
-            <Typography.Text type="secondary" style={{ fontSize: 13, fontWeight: 400 }}>
-              Quản lý template Zalo và cấu hình gửi thông báo
-            </Typography.Text>
-          </Space>
-        }
         extra={
           <Button type="primary" icon={<CloudSyncOutlined />} loading={syncing} onClick={() => setSyncOpen(true)}>
             Đồng bộ
