@@ -122,8 +122,18 @@ const layoutStyles = `
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 8px;
+    padding: 6px 10px;
     cursor: pointer;
+    border-radius: 10px;
+    transition: background 0.2s;
+  }
+
+  .header-user:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  [data-theme='dark'] .header-user:hover {
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .theme-toggle-btn {
@@ -161,10 +171,27 @@ const layoutStyles = `
     min-width: 0;
   }
 
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .collapse-btn {
     border: none;
     box-shadow: none;
-    padding: 0;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .theme-toggle-btn {
+    color: rgba(0, 0, 0, 0.65) !important;
+    border-radius: 8px;
+    margin-right: 4px;
+  }
+
+  [data-theme='dark'] .theme-toggle-btn {
+    color: rgba(255, 255, 255, 0.65) !important;
   }
 
   .topbar {
@@ -377,23 +404,25 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
                 </Typography.Text>
               </div>
             </div>
-            <Dropdown menu={accountMenu} placement="bottomRight" trigger={['click']}>
-              <div className="header-user">
-                <Button
-                  className="theme-toggle-btn"
-                  type="text"
-                  icon={mode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
-                  onClick={toggle}
-                />
-                <Avatar size={36} className="user-avatar">
-                  {user.avatar}
-                </Avatar>
-                <div>
-                  <div className="user-name">{user.name}</div>
-                  <div className="user-role">{user.role}</div>
+            <div className="topbar-right">
+              <Button
+                className="theme-toggle-btn"
+                type="text"
+                icon={mode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+                onClick={toggle}
+              />
+              <Dropdown menu={accountMenu} placement="bottomRight" trigger={['click']}>
+                <div className="header-user">
+                  <Avatar size={36} className="user-avatar">
+                    {user.avatar}
+                  </Avatar>
+                  <div>
+                    <div className="user-name">{user.name}</div>
+                    <div className="user-role">{user.role}</div>
+                  </div>
                 </div>
-              </div>
-            </Dropdown>
+              </Dropdown>
+            </div>
           </Layout.Header>
 
           <Layout.Content className="content">

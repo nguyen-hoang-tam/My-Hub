@@ -1,56 +1,71 @@
-# Rect CRUD — Quản lý kho + ZNS
+# My Hub — Inventory Management + ZNS
 
-Ứng dụng quản lý kho (React + Ant Design + Vite) với backend là Cloudflare Worker dùng KV. Tích hợp gửi thông báo Zalo ZNS.
+Inventory management app (React + Ant Design + Vite) with a Cloudflare Worker backend using KV. Includes login, dark mode, collapsible sidebar, and Zalo ZNS notification integration.
+
+## Features
+
+- **Login** — sign-in form, user persisted to localStorage, sign-out from the account dropdown (top-right of the header)
+- **Notes / Dashboard** — overview + charts, the default page after login
+- **Product management** — CRUD products (add / edit / delete / search) via KV
+- **ZNS settings** — template configuration, field mapping, triggers, test send, and ZNS send history
+- **Dark mode** — toggle on the login page and in the header; persisted to localStorage (`myhub.theme`)
+- **Sidebar** — blue background `#0047ad`, collapsible, `/logo.png` logo, navigation menu
 
 ## Scripts
 
 ```bash
-npm run dev          # chạy dev (Vite + Cloudflare local)
+npm run dev          # run dev (Vite + Cloudflare local, http://localhost:5173)
 npm run build        # type-check (tsc -b) + build
 npm run lint         # eslint
-npm run preview      # build rồi preview
+npm run preview      # build then preview
 npm run deploy       # build + wrangler deploy
 npm run cf-typegen   # regenerate worker-configuration.d.ts
 ```
 
-## Cấu trúc thư mục
+## Project structure
 
 ```
 ├── worker/                      # Cloudflare Worker (API)
-│   ├── index.ts                 # entry, routing /api/*
-│   ├── storage.ts               # helpers dùng chung: listJson, makeId, jsonError
-│   ├── products.ts              # CRUD sản phẩm (KV)
+│   ├── index.ts                 # entry, /api/* routing
+│   ├── storage.ts               # shared helpers: listJson, makeId, jsonError
+│   ├── products.ts              # product CRUD (KV)
 │   └── zns/
-│       ├── index.ts             # router /api/zns/*
+│       ├── index.ts             # /api/zns/* router
 │       ├── types.ts             # ZnsConfigItem, ZnsHistoryItem
-│       ├── configs.ts           # CRUD cấu hình ZNS
-│       └── send.ts              # gửi Zalo ZNS, lịch sử, sự kiện
+│       ├── configs.ts           # ZNS config CRUD
+│       └── send.ts              # send Zalo ZNS, history, events
 └── src/                         # React app
-    ├── main.tsx                 # entry (chứa global styles)
-    ├── App.tsx                  # providers (ConfigProvider, AntApp)
+    ├── main.tsx                 # entry (global styles, CSS variables)
+    ├── App.tsx                  # providers (ThemeProvider, ConfigProvider, AntApp), auth flow
+    ├── auth.ts                  # User type + load/save/clear user (localStorage)
+    ├── theme.tsx                # ThemeProvider (light/dark mode)
+    ├── theme-context.ts         # ThemeContext + useTheme
     ├── api/
-    │   ├── client.ts            # fetch helper dùng chung
-    │   ├── products.ts          # types + API sản phẩm
-    │   └── zns.ts               # types + API ZNS
+    │   ├── client.ts            # shared fetch helper
+    │   ├── products.ts          # product types + API
+    │   └── zns.ts               # ZNS types + API
     ├── components/
+    │   ├── auth/
+    │   │   └── Login.tsx        # sign-in form
     │   ├── layout/
-    │   │   └── AppLayout.tsx    # sidebar, topbar, chuyển trang (+ layout styles)
+    │   │   └── AppLayout.tsx    # collapsible sidebar, topbar, account dropdown, dark mode, layout styles
     │   └── products/
-    │       └── ProductModal.tsx # modal thêm/sửa sản phẩm
+    │       └── ProductModal.tsx # add/edit product modal
     ├── pages/
-    │   ├── Dashboard.tsx        # tổng quan + biểu đồ
-    │   ├── Products.tsx         # danh sách sản phẩm (CRUD)
+    │   ├── Dashboard.tsx        # quick notes: overview + charts
+    │   ├── Products.tsx         # product list (CRUD)
     │   └── zns/
-    │       ├── ZnsConfigs.tsx   # danh sách + editor mẫu tin nhắn
-    │       ├── ZnsConfigScreen.tsx # cấu hình mapping/sự kiện/gửi thử
-    │       └── ZnsHistory.tsx   # lịch sử gửi ZNS
+    │       ├── ZnsConfigs.tsx   # config list + message template editor
+    │       ├── ZnsConfigScreen.tsx # mapping/trigger/test-send config
+    │       └── ZnsHistory.tsx   # ZNS send history
     ├── constants/
-    │   └── zns.ts               # options, triggers, biến ZNS
+    │   └── zns.ts               # options, triggers, ZNS variables
     └── utils/
         └── format.ts            # formatDate, formatPrice
 ```
 
-## Quy ước style
+## Styling conventions
 
-Không dùng file `.css` riêng. Style được nhúng trực tiếp trong file `.tsx` qua một hằng số template string và render bằng thẻ `<style>` ngay trong component đó (ví dụ `const styles = \`...\`` + `<style>{styles}</style>`). Các class dùng chung (bảng, cell, search) được đặt trong `AppLayout.tsx`.
-```
+No standalone `.css` files. Styles are embedded directly in `.tsx` files via a template-string constant rendered with a `<style>` tag inside that component (e.g. `const styles = \`...\`` + `<style>{styles}</style>`). Shared classes (table, cells, search) live in `AppLayout.tsx`.
+
+Dark mode uses the `data-theme` attribute on `<html>` (set by `ThemeProvider`). Components use the `[data-theme='dark']` selector to override hardcoded light backgrounds so they match antd's dark theme.
