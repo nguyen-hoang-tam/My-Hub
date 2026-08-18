@@ -1,9 +1,131 @@
 import { useState } from 'react'
 import { Alert, App as AntApp, Button, Card, Checkbox, Col, Input, Row, Select, Space, Tag, Typography } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { znsApi, type ZnsConfigInput, type ZnsConfigItem } from './api'
-import { DATA_FIELD_SAMPLES, DATA_FIELDS, TRIGGERS } from './zns'
-import './ZnsConfig.css'
+import { znsApi, type ZnsConfigInput, type ZnsConfigItem } from '../../api/zns'
+import { DATA_FIELD_SAMPLES, DATA_FIELDS, TRIGGERS } from '../../constants/zns'
+
+const styles = `
+  .zns-section-card {
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .zns-section-title {
+    font-size: 14px;
+    font-weight: 650;
+    color: rgba(0, 0, 0, 0.88);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .zns-section-title::before {
+    content: '';
+    width: 4px;
+    height: 15px;
+    border-radius: 2px;
+    background: #1677ff;
+  }
+
+  .mapping-table {
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .mapping-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .mapping-row:first-child {
+    border-top: none;
+  }
+
+  .mapping-head {
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .mapping-param code {
+    background: #f0f5ff;
+    color: #1677ff;
+    border: 1px solid #d6e4ff;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 13px;
+  }
+
+  .mapping-select {
+    width: 100%;
+  }
+
+  .zns-preview-panel {
+    position: sticky;
+    top: 96px;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .zns-msg-bubble {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  :root[data-theme='dark'] .zns-section-card,
+  :root[data-theme='dark'] .zns-preview-panel {
+    background: #1f1f1f;
+    border-color: #303030;
+  }
+
+  :root[data-theme='dark'] .zns-section-title {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  :root[data-theme='dark'] .mapping-table {
+    border-color: #303030;
+  }
+
+  :root[data-theme='dark'] .mapping-row {
+    border-color: #303030;
+  }
+
+  :root[data-theme='dark'] .mapping-head {
+    background: #141414;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  :root[data-theme='dark'] .mapping-param code {
+    background: rgba(22, 119, 255, 0.15);
+    color: #5aa4ff;
+    border-color: rgba(22, 119, 255, 0.3);
+  }
+
+  :root[data-theme='dark'] .zns-msg-bubble {
+    background: #141414;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+`
 
 function renderTemplate(text: string, values: Record<string, string>) {
   const parts = text.split(/(\{[^}]+\})/g)
@@ -152,8 +274,10 @@ function ZnsConfigScreen({
   const values = resolveValues()
 
   return (
-    <Card
-      className="zns-editor"
+    <>
+      <style>{styles}</style>
+      <Card
+        className="zns-editor"
       title={
         <Space>
           <Button type="text" icon={<ArrowLeftOutlined />} onClick={onBack} aria-label="Quay lại" />
@@ -316,7 +440,8 @@ function ZnsConfigScreen({
           </div>
         </Col>
       </Row>
-    </Card>
+      </Card>
+    </>
   )
 }
 

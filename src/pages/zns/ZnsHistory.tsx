@@ -2,9 +2,52 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button, Card, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { ReloadOutlined } from '@ant-design/icons'
-import { znsApi, type ZnsHistoryItem } from './api'
-import { formatDate } from './format'
-import './ZnsConfig.css'
+import { znsApi, type ZnsHistoryItem } from '../../api/zns'
+import { formatDate } from '../../utils/format'
+
+const styles = `
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .detail-label {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.45);
+    margin-bottom: 2px;
+  }
+
+  .detail-value {
+    font-size: 14px;
+    font-weight: 550;
+    color: rgba(0, 0, 0, 0.88);
+    word-break: break-all;
+  }
+
+  .zns-payload {
+    background: #f6f6f8;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    overflow-x: auto;
+    margin: 8px 0 0;
+  }
+
+  :root[data-theme='dark'] .detail-label {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  :root[data-theme='dark'] .detail-value {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  :root[data-theme='dark'] .zns-payload {
+    background: #1f1f1f;
+    border-color: #303030;
+  }
+`
 
 function ZnsHistory() {
   const [logs, setLogs] = useState<ZnsHistoryItem[]>([])
@@ -119,9 +162,11 @@ function ZnsHistory() {
   ]
 
   return (
-    <div>
-      <Card
-        extra={
+    <>
+      <style>{styles}</style>
+      <div>
+        <Card
+          extra={
           <Button icon={<ReloadOutlined />} loading={loading} onClick={reload}>
             Làm mới
           </Button>
@@ -231,7 +276,8 @@ function ZnsHistory() {
           </div>
         )}
       </Modal>
-    </div>
+      </div>
+    </>
   )
 }
 

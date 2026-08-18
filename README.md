@@ -1,75 +1,56 @@
-# React + TypeScript + Vite
+# Rect CRUD — Quản lý kho + ZNS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ứng dụng quản lý kho (React + Ant Design + Vite) với backend là Cloudflare Worker dùng KV. Tích hợp gửi thông báo Zalo ZNS.
 
-Currently, two official plugins are available:
+## Scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run dev          # chạy dev (Vite + Cloudflare local)
+npm run build        # type-check (tsc -b) + build
+npm run lint         # eslint
+npm run preview      # build rồi preview
+npm run deploy       # build + wrangler deploy
+npm run cf-typegen   # regenerate worker-configuration.d.ts
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Cấu trúc thư mục
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```
+├── worker/                      # Cloudflare Worker (API)
+│   ├── index.ts                 # entry, routing /api/*
+│   ├── storage.ts               # helpers dùng chung: listJson, makeId, jsonError
+│   ├── products.ts              # CRUD sản phẩm (KV)
+│   └── zns/
+│       ├── index.ts             # router /api/zns/*
+│       ├── types.ts             # ZnsConfigItem, ZnsHistoryItem
+│       ├── configs.ts           # CRUD cấu hình ZNS
+│       └── send.ts              # gửi Zalo ZNS, lịch sử, sự kiện
+└── src/                         # React app
+    ├── main.tsx                 # entry (chứa global styles)
+    ├── App.tsx                  # providers (ConfigProvider, AntApp)
+    ├── api/
+    │   ├── client.ts            # fetch helper dùng chung
+    │   ├── products.ts          # types + API sản phẩm
+    │   └── zns.ts               # types + API ZNS
+    ├── components/
+    │   ├── layout/
+    │   │   └── AppLayout.tsx    # sidebar, topbar, chuyển trang (+ layout styles)
+    │   └── products/
+    │       └── ProductModal.tsx # modal thêm/sửa sản phẩm
+    ├── pages/
+    │   ├── Dashboard.tsx        # tổng quan + biểu đồ
+    │   ├── Products.tsx         # danh sách sản phẩm (CRUD)
+    │   └── zns/
+    │       ├── ZnsConfigs.tsx   # danh sách + editor mẫu tin nhắn
+    │       ├── ZnsConfigScreen.tsx # cấu hình mapping/sự kiện/gửi thử
+    │       └── ZnsHistory.tsx   # lịch sử gửi ZNS
+    ├── constants/
+    │   └── zns.ts               # options, triggers, biến ZNS
+    └── utils/
+        └── format.ts            # formatDate, formatPrice
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Quy ước style
 
+Không dùng file `.css` riêng. Style được nhúng trực tiếp trong file `.tsx` qua một hằng số template string và render bằng thẻ `<style>` ngay trong component đó (ví dụ `const styles = \`...\`` + `<style>{styles}</style>`). Các class dùng chung (bảng, cell, search) được đặt trong `AppLayout.tsx`.
 ```

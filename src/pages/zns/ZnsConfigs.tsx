@@ -24,11 +24,116 @@ import {
   PlusOutlined,
   SaveOutlined,
 } from '@ant-design/icons'
-import { znsApi, type ZnsConfigInput, type ZnsConfigItem } from './api'
-import { CATEGORY_OPTIONS, PARTNER_OPTIONS, PUSHSALE_VARS, TYPE_OPTIONS, extractVariables } from './zns'
-import { formatDate } from './format'
+import { znsApi, type ZnsConfigInput, type ZnsConfigItem } from '../../api/zns'
+import {
+  CATEGORY_OPTIONS,
+  PARTNER_OPTIONS,
+  PUSHSALE_VARS,
+  TYPE_OPTIONS,
+  extractVariables,
+} from '../../constants/zns'
+import { formatDate } from '../../utils/format'
 import ZnsConfigScreen from './ZnsConfigScreen'
-import './ZnsConfig.css'
+
+const styles = `
+  .zns-preview-panel {
+    position: sticky;
+    top: 96px;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .zns-highlight-preview {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .zns-msg-bubble {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .vars-ref {
+    margin-top: 8px;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .vars-ref-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-top: 1px solid #f0f0f0;
+    font-size: 13px;
+  }
+
+  .vars-ref-row:first-child {
+    border-top: none;
+  }
+
+  .vars-ref-row code {
+    background: #fff1f0;
+    color: #e02424;
+    border: 1px solid #ffccc7;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 12px;
+  }
+
+  .vars-ref-label {
+    color: rgba(0, 0, 0, 0.65);
+  }
+
+  .cell-id {
+    font-weight: 600;
+    color: #1677ff;
+    font-family: monospace;
+  }
+
+  :root[data-theme='dark'] .zns-preview-panel {
+    background: #1f1f1f;
+    border-color: #303030;
+  }
+
+  :root[data-theme='dark'] .zns-highlight-preview,
+  :root[data-theme='dark'] .zns-msg-bubble,
+  :root[data-theme='dark'] .vars-ref {
+    background: #141414;
+    border-color: #303030;
+  }
+
+  :root[data-theme='dark'] .vars-ref-row {
+    border-color: #303030;
+  }
+
+  :root[data-theme='dark'] .vars-ref-row code {
+    background: rgba(255, 0, 0, 0.12);
+    color: #ff7875;
+    border-color: rgba(255, 0, 0, 0.35);
+  }
+
+  :root[data-theme='dark'] .vars-ref-label {
+    color: rgba(255, 255, 255, 0.65);
+  }
+`
 
 type FormValues = {
   partnerId?: string
@@ -227,9 +332,11 @@ function ZnsConfigs() {
       .map((v: string) => v.trim())
       .filter(Boolean)
     return (
-      <Card
-        className="zns-editor"
-        title={
+      <>
+        <style>{styles}</style>
+        <Card
+          className="zns-editor"
+          title={
           <Space>
             <Button type="text" icon={<ArrowLeftOutlined />} onClick={closeEditor} aria-label="Quay lại" />
             <span>{isEdit ? 'Cập nhật template' : 'Thêm mới mẫu tin nhắn ZNS'}</span>
@@ -360,7 +467,8 @@ function ZnsConfigs() {
             </div>
           </Col>
         </Row>
-      </Card>
+        </Card>
+      </>
     )
   }
 
@@ -452,8 +560,10 @@ function ZnsConfigs() {
   ]
 
   return (
-    <div>
-      {error && (
+    <>
+      <style>{styles}</style>
+      <div>
+        {error && (
         <Alert
           type="error"
           showIcon
@@ -492,7 +602,8 @@ function ZnsConfigs() {
           }}
         />
       </Card>
-    </div>
+      </div>
+    </>
   )
 }
 
