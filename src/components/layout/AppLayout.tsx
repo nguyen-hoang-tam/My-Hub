@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Alert, Avatar, Button, Card, Dropdown, Empty, Layout, Menu, Typography } from 'antd'
+import { Alert, Avatar, Button, Card, Drawer, Dropdown, Empty, Grid, Layout, Menu, Typography } from 'antd'
 import {
   AppstoreOutlined,
   BarChartOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
+  MenuOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
   SettingOutlined,
@@ -322,6 +323,13 @@ const layoutStyles = `
       padding: 16px;
     }
   }
+
+  .drawer-sidebar {
+    position: static !important;
+    height: 100%;
+    min-height: 100%;
+    border-right: none;
+  }
 `
 
 const NAV_ITEMS = [
@@ -342,7 +350,7 @@ const NAV_ITEMS = [
 ]
 
 const PAGE_TITLES: Record<string, string> = {
-  dashboard: 'Ghi chú nhanh',
+  dashboard: 'Ghi chú',
   products: 'Sản phẩm',
   zns: 'Cấu hình ZNS',
   'zns-history': 'Lịch sử gửi ZNS',
@@ -354,7 +362,15 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [activeKey, setActiveKey] = useState('dashboard')
   const [collapsed, setCollapsed] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const { mode, toggle } = useTheme()
+  const screens = Grid.useBreakpoint()
+  const isMobile = !screens.lg
+
+  function handleNavigate(key: string) {
+    setActiveKey(key)
+    if (isMobile) setDrawerOpen(false)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -383,55 +399,88 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
     },
   }
 
+  const sidebarMenu = (
+    <>
+      <div className="sidebar-brand">
+        <span className="brand-badge">
+          <img className="brand-logo" src="/logo.png" alt="logo" />
+        </span>
+        {!collapsed && <span className="brand-name">My Hub</span>}
+      </div>
+      <Menu
+        className="sidebar-menu"
+        mode="inline"
+        inlineCollapsed={!isMobile ? collapsed : false}
+        selectedKeys={[activeKey]}
+        items={NAV_ITEMS}
+        onClick={({ key }) => handleNavigate(key)}
+      />
+    </>
+  )
+
   return (
     <>
       <style>{layoutStyles}</style>
       <Layout className="layout">
-        <Layout.Sider
-          className="sidebar"
-          width={240}
-          collapsedWidth={80}
-          collapsible
-          collapsed={collapsed}
-          trigger={null}
-        >
-          <div className="sidebar-brand">
-            <span className="brand-badge">
-              <img className="brand-logo" src="/logo.png" alt="logo" />
-            </span>
-            {!collapsed && <span className="brand-name">My Hub</span>}
-          </div>
-          <Menu
-            className="sidebar-menu"
-            mode="inline"
-            inlineCollapsed={collapsed}
-            selectedKeys={[activeKey]}
-            items={NAV_ITEMS}
-            onClick={({ key }) => setActiveKey(key)}
-          />
-        </Layout.Sider>
+        {isMobile ? (
+          <Drawer
+            placement="left"
+            width={240}
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            closable={false}
+            styles={{ body: { padding: 0, background: '#0047ad' } }}
+          >
+            <div className="sidebar drawer-sidebar">{sidebarMenu}</div>
+          </Drawer>
+        ) : (
+          <Layout.Sider
+            className="sidebar"
+            width={240}
+            collapsedWidth={80}
+            collapsible
+            collapsed={collapsed}
+            trigger={null}
+          >
+            {sidebarMenu}
+          </Layout.Sider>
+        )}
 
         <Layout>
           <Layout.Header className="topbar">
             <div className="topbar-left">
-              <Button
-                className="collapse-btn"
-                type="text"
-                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={() => setCollapsed((c) => !c)}
-              />
-              <div className="topbar-title">
-                <Typography.Title level={4} style={{ margin: 0 }}>
-                  {PAGE_TITLES[activeKey] ?? NAV_ITEMS.find((i) => i.key === activeKey)?.label ?? ''}
-                </Typography.Title>
-                <Typography.Text type="secondary">
-                  {activeKey === 'products'
-                    ? `${products.length} sản phẩm · Tổng giá trị ${formatPrice(totalValue)}`
-                    : activeKey === 'zns' || activeKey === 'zns-history'
-                      ? 'Quản lý thông báo Zalo ZNS'
-                      : `${products.length} sản phẩm đang được quản lý`}
-                </Typography.Text>
-              </div>
+              {isMobile && (
+                <Button
+                  className="collapse-btn"
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setDrawerOpen(true)}
+                />
+              )}
+              {!isMobile && (
+                <Button
+                  className="collapse-btn"
+                  type="text"
+                  icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                  onClick={() => setCollapsed((c) => !c)}
+                />
+              )}
+              {!isMobile && (
+                <div className="topbar-title">
+                  <Typography.Title level={4} style={{ margin: 0 }}>
+                    {PAGE_TITLES[activeKey] ?? NAV_ITEMS.find((i) => i.key === activeKey)?.label ?? ''}
+                  </Typography.Title>
+                  <Typography.Text type="secondary">
+                    {activeKey === 'dashboard'
+                      ? 'Quản lý task và công việc'
+                      : activeKey === 'products'
+                        ? `${products.length} sản phẩm · Tổng giá trị ${formatPrice(totalValue)}`
+                        : activeKey === 'zns' || activeKey === 'zns-history'
+                          ? 'Quản lý thông báo Zalo ZNS'
+                          : `${products.length} sản phẩm đang được quản lý`}
+                  </Typography.Text>
+                </div>
+              )}
             </div>
             <div className="topbar-right">
               <Button

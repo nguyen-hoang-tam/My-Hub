@@ -375,7 +375,7 @@ function Dashboard() {
   return (
     <Card
       title={
-        isMobile ? null : (
+        <div className="task-header">
           <div className="task-stats">
             {STATUSES.map((s) => (
               <Tag
@@ -388,57 +388,30 @@ function Dashboard() {
               </Tag>
             ))}
           </div>
-        )
-      }
-      extra={
-        isMobile ? null : (
-          <Space>
-            <Tooltip title="Cách hiển thị">
-              <Segmented
-                value={view}
-                onChange={(v) => setView(v as ViewMode)}
-                options={VIEW_OPTIONS}
-              />
-            </Tooltip>
-            <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
-              Lịch sử xoá
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              Tạo task
-            </Button>
-          </Space>
-        )
-      }
-    >
-      {isMobile && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-          <div className="task-stats">
-            {STATUSES.map((s) => (
-              <Tag
-                key={s}
-                className="task-stat-tag"
-                variant="solid"
-                color={STATUS_META[s].accent}
-              >
-                {STATUS_META[s].label}: {tasks.filter((t) => t.status === s).length}
-              </Tag>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <div className="task-header-tools">
             <Segmented
+              block={isMobile}
               value={view}
               onChange={(v) => setView(v as ViewMode)}
               options={VIEW_OPTIONS}
             />
-            <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)} />
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              Tạo task
-            </Button>
+            <div className="task-header-actions">
+              <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
+                Lịch sử xoá
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                Tạo task
+              </Button>
+            </div>
           </div>
         </div>
-      )}
+      }
+    >
       <style>{`.task-row { cursor: pointer; }
         .task-header-tools { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .task-header-actions { display: flex; align-items: center; gap: 8px; }
+        .task-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%; }
+        .task-header .task-stats { flex: 1; min-width: 0; }
         .task-stats { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; min-width: 0; }
         .ant-card-head-title .task-stats { width: 100%; }
         .task-stat-tag { margin-inline-end: 0 !important; color: #fff; font-weight: 600; border-radius: 6px; padding-inline: 12px; height: 32px; display: inline-flex; align-items: center; font-size: 14px; }
@@ -476,6 +449,11 @@ function Dashboard() {
           .task-view-layout { flex-direction: column; gap: 20px; }
           .task-view-images { border-left: none; padding-left: 0; border-top: 1px solid #f0f0f0; padding-top: 20px; }
           :root[data-theme='dark'] .task-view-images { border-top-color: #303030; }
+          .task-header { flex-direction: column; align-items: stretch; }
+          .task-header .task-stats { flex: 0 0 auto; width: 100%; }
+          .task-header-tools { flex-direction: column; align-items: stretch; gap: 12px; }
+          .task-header-actions { justify-content: flex-end; }
+          .task-header-actions .ant-btn { flex: 1; }
         }
         @media (min-width: 1200px) {
           .kanban-column { min-width: 220px; }
