@@ -44,20 +44,14 @@ const loginStyles = `
     height: 44px;
     display: grid;
     place-items: center;
-    border-radius: 12px;
-    background: #fff;
-    color: #fff;
-    font-size: 22px;
-    font-weight: 700;
-    border: 1px solid #e6e4df;
+    flex-shrink: 0;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   }
 
   .login-brand-logo {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 
   .login-brand-name {

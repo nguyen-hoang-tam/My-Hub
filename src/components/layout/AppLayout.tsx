@@ -93,16 +93,13 @@ const layoutStyles = `
     height: 34px;
     display: grid;
     place-items: center;
-    border-radius: 9px;
-    background: #fff;
     flex-shrink: 0;
-    overflow: hidden;
   }
 
   .brand-logo {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 
   .brand-name {
