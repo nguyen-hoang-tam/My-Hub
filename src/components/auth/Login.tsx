@@ -170,9 +170,6 @@ function Login({ onSuccess }: LoginProps) {
             </span>
             <span className="login-brand-name">MyHub</span>
           </div>
-          <Typography.Paragraph className="login-subtitle" type="secondary">
-            Đăng nhập để tiếp tục quản lý kho hàng của bạn
-          </Typography.Paragraph>
 
           <Form layout="vertical" onFinish={handleSubmit} requiredMark={false}>
             <Form.Item
