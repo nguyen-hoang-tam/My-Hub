@@ -51,20 +51,57 @@ const layoutStyles = `
   .sidebar .ant-menu-item:hover,
   .sidebar .ant-menu-submenu-title:hover {
     color: #fff !important;
+    background: transparent !important;
+  }
+
+  .sidebar .ant-menu-item:hover .anticon,
+  .sidebar .ant-menu-item:hover .ant-menu-item-icon,
+  .sidebar .ant-menu-submenu-title:hover .anticon,
+  .sidebar .ant-menu-submenu-title:hover .ant-menu-item-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.12) !important;
+    font-size: 18px;
+    flex-shrink: 0;
   }
 
   .sidebar .ant-menu-item-selected {
-    background: rgba(255, 255, 255, 0.2) !important;
-    color: #fff !important;
+    background: transparent !important;
+    color: #0047ad !important;
+  }
+
+  .sidebar .ant-menu-item-selected .anticon,
+  .sidebar .ant-menu-item-selected .ant-menu-item-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: #fff !important;
+    color: #1677ff !important;
+    font-size: 18px;
+    flex-shrink: 0;
   }
 
   .sidebar .ant-menu-item-selected::after {
-    border-inline-end: 2px solid #fff !important;
+    border-inline-end: none !important;
   }
 
   .sidebar .ant-menu-sub.ant-menu-inline {
     background: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .sidebar .ant-menu-inline-collapsed > .ant-menu-item,
+  .sidebar .ant-menu-inline-collapsed > .ant-menu-submenu > .ant-menu-submenu-title {
+    padding-inline: 0 !important;
+    justify-content: center;
   }
 
   .ant-menu-submenu-popup .ant-menu-vertical {
@@ -76,8 +113,21 @@ const layoutStyles = `
   }
 
   .ant-menu-submenu-popup .ant-menu-vertical .ant-menu-item-selected {
-    background: rgba(255, 255, 255, 0.2) !important;
-    color: #fff !important;
+    background: transparent !important;
+    color: #0047ad !important;
+  }
+
+  .ant-menu-submenu-popup .ant-menu-vertical .ant-menu-item-selected .anticon,
+  .ant-menu-submenu-popup .ant-menu-vertical .ant-menu-item-selected .ant-menu-item-icon {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: #fff !important;
+    color: #1677ff !important;
+    font-size: 18px;
   }
 
   .sidebar-brand {
