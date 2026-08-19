@@ -516,7 +516,7 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
             )}
 
             {activeKey === 'dashboard' ? (
-              <Dashboard products={products} />
+              <Dashboard />
             ) : activeKey === 'products' ? (
               <Products products={products} loading={loading} setProducts={setProducts} />
             ) : activeKey === 'zns' ? (
