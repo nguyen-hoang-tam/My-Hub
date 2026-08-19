@@ -34,8 +34,8 @@ const globalStyles = `
     --text: #d6d6db;
     --text-h: #f2f2f5;
     --text-muted: #8a8794;
-    --bg: #000;
-    --card-bg: #141414;
+    --bg: #1f2831;
+    --card-bg: #131b24;
     --border: #303030;
     color-scheme: dark;
   }

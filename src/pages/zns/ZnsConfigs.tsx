@@ -116,7 +116,7 @@ const styles = `
   :root[data-theme='dark'] .zns-highlight-preview,
   :root[data-theme='dark'] .zns-msg-bubble,
   :root[data-theme='dark'] .vars-ref {
-    background: #141414;
+    background: #131b24;
     border-color: #303030;
   }
 

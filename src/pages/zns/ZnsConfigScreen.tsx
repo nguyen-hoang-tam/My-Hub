@@ -111,7 +111,7 @@ const styles = `
   }
 
   :root[data-theme='dark'] .mapping-head {
-    background: #141414;
+    background: #131b24;
     color: rgba(255, 255, 255, 0.45);
   }
 
@@ -122,7 +122,7 @@ const styles = `
   }
 
   :root[data-theme='dark'] .zns-msg-bubble {
-    background: #141414;
+    background: #131b24;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
 `

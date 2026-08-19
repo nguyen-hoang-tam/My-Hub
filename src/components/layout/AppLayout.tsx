@@ -134,7 +134,7 @@ const layoutStyles = `
   }
 
   [data-theme='dark'] .header-user {
-    background: #141414;
+    background: #131b24;
     border-color: #303030;
   }
 
@@ -212,7 +212,7 @@ const layoutStyles = `
 
   [data-theme='dark'] .theme-toggle-btn {
     color: rgba(255, 255, 255, 0.65) !important;
-    background: #141414;
+    background: #131b24;
     border-color: #303030;
   }
 
@@ -246,16 +246,16 @@ const layoutStyles = `
   }
 
   [data-theme='dark'] .topbar {
-    background: #001529 !important;
+    background: #131b24 !important;
     border-bottom-color: rgba(255, 255, 255, 0.12);
   }
 
   [data-theme='dark'] .content {
-    background: #000;
+    background: #1f2831;
   }
 
   [data-theme='dark'] .data-table {
-    background: #141414;
+    background: #131b24;
   }
 
   [data-theme='dark'] .cell-name {

@@ -86,7 +86,7 @@ const loginStyles = `
   }
 
   :root[data-theme='dark'] .login-card {
-    background: #141414;
+    background: #131b24;
     border-color: #303030;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.5);
   }

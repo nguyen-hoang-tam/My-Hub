@@ -12,7 +12,13 @@ function AppContent() {
 
   return (
     <ConfigProvider
-      theme={{ algorithm: mode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm }}
+      theme={{
+        algorithm: mode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token:
+          mode === 'dark'
+            ? { colorBgContainer: '#131b24' }
+            : undefined,
+      }}
     >
       <AntApp>
         {user ? <AppLayout user={user} onLogout={() => setUser(null)} /> : <Login onSuccess={setUser} />}
