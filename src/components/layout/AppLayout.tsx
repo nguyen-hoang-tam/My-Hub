@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Alert, Avatar, Button, Card, Drawer, Dropdown, Empty, Grid, Layout, Menu, Typography } from 'antd'
+import { useState } from 'react'
+import { Avatar, Button, Card, Drawer, Dropdown, Empty, Grid, Layout, Menu, Typography } from 'antd'
 import {
   AppstoreOutlined,
   BarChartOutlined,
@@ -13,14 +13,9 @@ import {
   SunOutlined,
   TagOutlined,
 } from '@ant-design/icons'
-import { api, type Product } from '../../api/products'
-import { formatPrice } from '../../utils/format'
 import { clearStoredUser, type User } from '../../auth'
 import { useTheme } from '../../theme-context'
 import Dashboard from '../../pages/Dashboard'
-import Products from '../../pages/Products'
-import ZnsConfigs from '../../pages/zns/ZnsConfigs'
-import ZnsHistory from '../../pages/zns/ZnsHistory'
 
 const layoutStyles = `
   .layout {
@@ -399,14 +394,16 @@ const NAV_ITEMS = [
 const PAGE_TITLES: Record<string, string> = {
   dashboard: 'Ghi chú',
   products: 'Sản phẩm',
+  categories: 'Danh mục',
+  orders: 'Đơn hàng',
+  reports: 'Báo cáo',
   zns: 'Cấu hình ZNS',
   'zns-history': 'Lịch sử gửi ZNS',
 }
 
+const NO_DATA_PAGES = new Set(['products', 'categories', 'orders', 'reports', 'zns', 'zns-history'])
+
 function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [activeKey, setActiveKey] = useState('dashboard')
   const [collapsed, setCollapsed] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -418,25 +415,6 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
     setActiveKey(key)
     if (isMobile) setDrawerOpen(false)
   }
-
-  useEffect(() => {
-    const controller = new AbortController()
-    api
-      .listProducts(controller.signal)
-      .then((data) => {
-        setError(null)
-        setProducts(data)
-      })
-      .catch((e) => {
-        if (!controller.signal.aborted) {
-          setError(e instanceof Error ? e.message : 'Không thể tải sản phẩm')
-        }
-      })
-      .finally(() => setLoading(false))
-    return () => controller.abort()
-  }, [])
-
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0)
 
   const accountMenu = {
     items: [{ key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất' }],
@@ -520,11 +498,9 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
                   <Typography.Text type="secondary">
                     {activeKey === 'dashboard'
                       ? 'Quản lý task và công việc'
-                      : activeKey === 'products'
-                        ? `${products.length} sản phẩm · Tổng giá trị ${formatPrice(totalValue)}`
-                        : activeKey === 'zns' || activeKey === 'zns-history'
-                          ? 'Quản lý thông báo Zalo ZNS'
-                          : `${products.length} sản phẩm đang được quản lý`}
+                      : NO_DATA_PAGES.has(activeKey)
+                        ? 'Chưa có dữ liệu'
+                        : ''}
                   </Typography.Text>
                 </div>
               )}
@@ -551,25 +527,16 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
           </Layout.Header>
 
           <Layout.Content className="content">
-            {error && (
-              <Alert
-                type="error"
-                showIcon
-                closable
-                message={error}
-                onClose={() => setError(null)}
-                style={{ marginBottom: 16 }}
-              />
-            )}
-
             {activeKey === 'dashboard' ? (
               <Dashboard />
-            ) : activeKey === 'products' ? (
-              <Products products={products} loading={loading} setProducts={setProducts} />
-            ) : activeKey === 'zns' ? (
-              <ZnsConfigs />
-            ) : activeKey === 'zns-history' ? (
-              <ZnsHistory />
+            ) : NO_DATA_PAGES.has(activeKey) ? (
+              <Card style={{ marginTop: 16 }}>
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="Chưa có dữ liệu"
+                  style={{ padding: '48px 0' }}
+                />
+              </Card>
             ) : (
               <Card style={{ marginTop: 16 }}>
                 <Empty description="Trang này đang được xây dựng" />

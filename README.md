@@ -1,71 +1,44 @@
-# My Hub — Inventory Management + ZNS
+# My Hub — Ghi chú (Notes)
 
-Inventory management app (React + Ant Design + Vite) with a Cloudflare Worker backend using KV. Includes login, dark mode, collapsible sidebar, and Zalo ZNS notification integration.
+React + Ant Design + Vite app, hiện tại chỉ tập trung vào tính năng **Ghi chú / Task**. Dữ liệu lưu ở `localStorage`, không cần backend.
 
-## Features
+## Tính năng
 
-- **Login** — sign-in form, user persisted to localStorage, sign-out from the account dropdown (top-right of the header)
-- **Notes / Dashboard** — overview + charts, the default page after login
-- **Product management** — CRUD products (add / edit / delete / search) via KV
-- **ZNS settings** — template configuration, field mapping, triggers, test send, and ZNS send history
-- **Dark mode** — toggle on the login page and in the header; persisted to localStorage (`myhub.theme`)
-- **Sidebar** — blue background `#0047ad`, collapsible, `/logo.png` logo, navigation menu
+- **Đăng nhập** — form đăng nhập, lưu user vào localStorage, đăng xuất từ dropdown góc phải header
+- **Ghi chú / Task (Dashboard)** — trang mặc định sau khi đăng nhập: quản lý task theo trạng thái (Mới tạo / Đang thực hiện / Tạm dừng / Hoàn thành / Bị hủy), phòng ban (Dev / BA / QC / UXUI), hạn chót, hình ảnh, chế độ xem Bảng / Kanban (kéo thả), lịch sử xoá & khôi phục
+- **Các trang khác (Sản phẩm, Danh mục, Đơn hàng, Báo cáo, Cài đặt ZNS)** — mặc định hiển thị "Chưa có dữ liệu", không ảnh hưởng tới trang ghi chú
+- **Dark mode** — bật/tắt trên trang đăng nhập và trong header; lưu ở localStorage (`myhub.theme`)
+- **Sidebar** — nền xanh `#0047ad`, thu gọn được, logo `/logo.png`, menu điều hướng
 
 ## Scripts
 
 ```bash
-npm run dev          # run dev (Vite + Cloudflare local, http://localhost:5173)
+npm run dev          # chạy dev (Vite, http://localhost:5173)
 npm run build        # type-check (tsc -b) + build
 npm run lint         # eslint
-npm run preview      # build then preview
-npm run deploy       # build + wrangler deploy
-npm run cf-typegen   # regenerate worker-configuration.d.ts
+npm run preview      # build rồi preview
 ```
 
-## Project structure
+## Cấu trúc project
 
 ```
-├── worker/                      # Cloudflare Worker (API)
-│   ├── index.ts                 # entry, /api/* routing
-│   ├── storage.ts               # shared helpers: listJson, makeId, jsonError
-│   ├── products.ts              # product CRUD (KV)
-│   └── zns/
-│       ├── index.ts             # /api/zns/* router
-│       ├── types.ts             # ZnsConfigItem, ZnsHistoryItem
-│       ├── configs.ts           # ZNS config CRUD
-│       └── send.ts              # send Zalo ZNS, history, events
-└── src/                         # React app
-    ├── main.tsx                 # entry (global styles, CSS variables)
-    ├── App.tsx                  # providers (ThemeProvider, ConfigProvider, AntApp), auth flow
-    ├── auth.ts                  # User type + load/save/clear user (localStorage)
-    ├── theme.tsx                # ThemeProvider (light/dark mode)
-    ├── theme-context.ts         # ThemeContext + useTheme
-    ├── api/
-    │   ├── client.ts            # shared fetch helper
-    │   ├── products.ts          # product types + API
-    │   └── zns.ts               # ZNS types + API
-    ├── components/
-    │   ├── auth/
-    │   │   └── Login.tsx        # sign-in form
-    │   ├── layout/
-    │   │   └── AppLayout.tsx    # collapsible sidebar, topbar, account dropdown, dark mode, layout styles
-    │   └── products/
-    │       └── ProductModal.tsx # add/edit product modal
-    ├── pages/
-    │   ├── Dashboard.tsx        # quick notes: overview + charts
-    │   ├── Products.tsx         # product list (CRUD)
-    │   └── zns/
-    │       ├── ZnsConfigs.tsx   # config list + message template editor
-    │       ├── ZnsConfigScreen.tsx # mapping/trigger/test-send config
-    │       └── ZnsHistory.tsx   # ZNS send history
-    ├── constants/
-    │   └── zns.ts               # options, triggers, ZNS variables
-    └── utils/
-        └── format.ts            # formatDate, formatPrice
+├── src/                         # React app
+│   ├── main.tsx                 # entry (global styles, CSS variables)
+│   ├── App.tsx                  # providers (ThemeProvider, ConfigProvider, AntApp), auth flow
+│   ├── auth.ts                  # User type + load/save/clear user (localStorage)
+│   ├── theme.tsx                # ThemeProvider (light/dark mode)
+│   ├── theme-context.ts         # ThemeContext + useTheme
+│   ├── components/
+│   │   ├── auth/
+│   │   │   └── Login.tsx        # form đăng nhập
+│   │   └── layout/
+│   │       └── AppLayout.tsx    # sidebar thu gọn, topbar, account dropdown, dark mode, layout styles
+│   └── pages/
+│       └── Dashboard.tsx        # tính năng ghi chú: overview + bảng/kanban + lịch sử xoá
 ```
 
-## Styling conventions
+## Quy ước styling
 
-No standalone `.css` files. Styles are embedded directly in `.tsx` files via a template-string constant rendered with a `<style>` tag inside that component (e.g. `const styles = \`...\`` + `<style>{styles}</style>`). Shared classes (table, cells, search) live in `AppLayout.tsx`.
+Không dùng file `.css` riêng. Style được nhúng trực tiếp trong file `.tsx` qua template-string constant render bằng thẻ `<style>` (VD: `const styles = \`...\`` + `<style>{styles}</style>`). Các class dùng chung (table, cells, search) nằm trong `AppLayout.tsx`.
 
-Dark mode uses the `data-theme` attribute on `<html>` (set by `ThemeProvider`). Components use the `[data-theme='dark']` selector to override hardcoded light backgrounds so they match antd's dark theme.
+Dark mode dùng attribute `data-theme` trên `<html>` (set bởi `ThemeProvider`). Component dùng selector `[data-theme='dark']` để override màu nền light cho khớp theme dark của antd.
