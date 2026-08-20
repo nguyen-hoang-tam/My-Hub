@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   App,
+  Alert,
   Button,
   Card,
   DatePicker,
@@ -14,6 +15,7 @@ import {
   Segmented,
   Select,
   Space,
+  Spin,
   Table,
   Tag,
   Tooltip,
@@ -29,40 +31,15 @@ import {
   CloseOutlined,
   DeleteOutlined,
   EditOutlined,
-  HistoryOutlined,
   PlusOutlined,
   UndoOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
+import { taskApi, type Task } from '../api/tasks'
 
 type Department = 'Dev' | 'BA' | 'QC' | 'UXUI'
 type Status = 'new' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
-
-interface Task {
-  id: string
-  title: string
-  department: Department
-  status: Status
-  deadline: string | null
-  images: string[]
-}
-
-interface DeletedTask extends Task {
-  deletedAt: string
-}
-
-interface StoredTask {
-  id?: string
-  title?: string
-  department?: Department
-  status?: Status
-  done?: boolean
-  deadline?: string | null
-  image?: string | null
-  images?: string[]
-  deletedAt?: string
-}
 
 const DEPARTMENTS: Department[] = ['Dev', 'BA', 'QC', 'UXUI']
 
@@ -118,10 +95,6 @@ const DEPT_META: Record<Department, { color: string }> = {
 type ModalMode = 'create' | 'edit' | 'view'
 type ViewMode = 'table' | 'kanban'
 
-const STORAGE_KEY = 'myhub.tasks'
-const HISTORY_KEY = 'myhub.deletedTasks'
-const VIEW_KEY = 'myhub.tasks.view'
-
 const VIEW_OPTIONS = [
   { value: 'table', icon: <UnorderedListOutlined />, label: 'Bảng' },
   { value: 'kanban', icon: <AppstoreOutlined />, label: 'Kanban' },
@@ -134,41 +107,13 @@ const KANBAN_COLUMNS = STATUSES.map((s) => ({
   accent: STATUS_META[s].accent,
 }))
 
-function loadStored<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function migrateStatus(t: StoredTask): Status {
-  if (t.status && STATUSES.includes(t.status)) {
-    return t.status
-  }
-  return t.done ? 'completed' : 'new'
-}
-
-function normalizeStored(t: StoredTask): Task & { deletedAt?: string } {
-  return {
-    id: t.id ?? crypto.randomUUID(),
-    title: t.title ?? '',
-    department: (t.department ?? 'Dev') as Department,
-    status: migrateStatus(t),
-    deadline: t.deadline ?? null,
-    images: t.images && t.images.length > 0 ? t.images : t.image ? [t.image] : [],
-    deletedAt: t.deletedAt,
-  }
-}
-
 function Dashboard() {
   const { message } = App.useApp()
   const screens = Grid.useBreakpoint()
   const isMobile = !screens.md
-  const [tasks, setTasks] = useState<Task[]>(() =>
-    loadStored<StoredTask[]>(STORAGE_KEY, []).map(normalizeStored),
-  )
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [form] = Form.useForm<{
     title: string
     department: Department
@@ -179,28 +124,44 @@ function Dashboard() {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<ModalMode>('create')
   const [current, setCurrent] = useState<Task | null>(null)
-  const [deletedTasks, setDeletedTasks] = useState<DeletedTask[]>(() =>
-    loadStored<StoredTask[]>(HISTORY_KEY, []).map((t) => normalizeStored(t) as DeletedTask),
-  )
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [images, setImages] = useState<string[]>([])
-  const [view, setView] = useState<ViewMode>(() =>
-    loadStored<ViewMode>(VIEW_KEY, 'table') === 'kanban' ? 'kanban' : 'table',
-  )
+  const [view, setView] = useState<ViewMode>('table')
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
 
   useEffect(() => {
-    localStorage.setItem(VIEW_KEY, JSON.stringify(view))
-  }, [view])
+    let active = true
+    taskApi
+      .getAll()
+      .then((data) => {
+        if (!active) return
+        setTasks(data)
+        setError(null)
+      })
+      .catch((e) => {
+        if (!active) return
+        setError(e instanceof Error ? e.message : 'Không thể tải task')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
-  }, [tasks])
-
-  useEffect(() => {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(deletedTasks))
-  }, [deletedTasks])
+  const refresh = () => {
+    taskApi
+      .getAll()
+      .then((data) => {
+        setTasks(data)
+        setError(null)
+      })
+      .catch((e) =>
+        message.error('Không thể tải task: ' + (e instanceof Error ? e.message : e)),
+      )
+  }
 
   const openCreate = () => {
     setMode('create')
@@ -224,40 +185,61 @@ function Dashboard() {
   }
 
   const handleSave = async () => {
-    const values = await form.validateFields()
+    const values = await form.validateFields().catch(() => null)
+    if (!values) return
     const deadline = values.deadline ? values.deadline.format('YYYY-MM-DD') : null
-    if (mode === 'create') {
-      const task: Task = { id: crypto.randomUUID(), ...values, deadline, images }
-      setTasks((prev) => [...prev, task])
-      message.success('Đã tạo task')
-    } else if (mode === 'edit' && current) {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === current.id ? { ...t, ...values, deadline, images } : t,
-        ),
-      )
-      message.success('Đã cập nhật task')
+    setSaving(true)
+    try {
+      if (mode === 'create') {
+        await taskApi.create({
+          title: values.title,
+          department: values.department,
+          status: values.status,
+          deadline,
+          images,
+        })
+        message.success('Đã tạo task')
+      } else if (mode === 'edit' && current) {
+        await taskApi.update(current.id, {
+          title: values.title,
+          department: values.department,
+          status: values.status,
+          deadline,
+          images,
+        })
+        message.success('Đã cập nhật task')
+      }
+      setOpen(false)
+      refresh()
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : 'Không thể lưu task')
+    } finally {
+      setSaving(false)
     }
-    setOpen(false)
   }
 
   const removeTask = (task: Task) => {
-    setTasks((prev) => prev.filter((t) => t.id !== task.id))
-    setDeletedTasks((prev) => [{ ...task, deletedAt: dayjs().toISOString() }, ...prev])
-    message.success('Đã xóa task')
-  }
-
-  const restoreTask = (deleted: DeletedTask) => {
-    const { id, title, department, status, deadline, images } = deleted
-    const task: Task = { id, title, department, status, deadline, images }
-    setTasks((prev) => [...prev, task])
-    setDeletedTasks((prev) => prev.filter((t) => t.id !== deleted.id))
-    message.success('Đã khôi phục task')
+    taskApi
+      .delete(task.id)
+      .then(() => {
+        message.success('Đã xóa task')
+        refresh()
+      })
+      .catch((e) =>
+        message.error('Xóa thất bại: ' + (e instanceof Error ? e.message : e)),
+      )
   }
 
   const setTaskStatus = (task: Task, status: Status) => {
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status } : t)))
-    message.success(`Đã chuyển task sang "${STATUS_META[status].label}"`)
+    taskApi
+      .update(task.id, { status })
+      .then(() => {
+        message.success(`Đã chuyển task sang "${STATUS_META[status].label}"`)
+        refresh()
+      })
+      .catch((e) =>
+        message.error('Cập nhật thất bại: ' + (e instanceof Error ? e.message : e)),
+      )
   }
 
   const toggleDone = (task: Task) => {
@@ -330,10 +312,7 @@ function Dashboard() {
       key: 'actions',
       width: 90,
       render: (_: unknown, record: Task) => (
-        <Space
-          size={0}
-          onClick={(e) => e.stopPropagation()}
-        >
+        <Space size={0} onClick={(e) => e.stopPropagation()}>
           <Popconfirm
             title="Xóa task"
             description={`Xóa task "${record.title}"?`}
@@ -396,9 +375,6 @@ function Dashboard() {
               options={VIEW_OPTIONS}
             />
             <div className="task-header-actions">
-              <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
-                Lịch sử xoá
-              </Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                 Tạo task
               </Button>
@@ -458,7 +434,19 @@ function Dashboard() {
         @media (min-width: 1200px) {
           .kanban-column { min-width: 220px; }
         }`}</style>
-      {tasks.length === 0 ? (
+      {error && (
+        <Alert
+          type="error"
+          showIcon
+          closable
+          message={error}
+          onClose={() => setError(null)}
+          style={{ marginBottom: 16 }}
+        />
+      )}
+      {loading ? (
+        <Spin style={{ display: 'block', textAlign: 'center', padding: '48px 0' }} />
+      ) : tasks.length === 0 ? (
         <Empty
           style={{ padding: '48px 0' }}
           description={
@@ -682,7 +670,7 @@ function Dashboard() {
           ) : (
             <Space>
               <Button onClick={() => setOpen(false)}>Hủy</Button>
-              <Button type="primary" loading={false} onClick={handleSave}>
+              <Button type="primary" loading={saving} onClick={handleSave}>
                 Lưu
               </Button>
             </Space>
@@ -832,130 +820,6 @@ function Dashboard() {
               </div>
             </div>
           </Form>
-      </Modal>
-
-      <Modal
-        title="Lịch sử xoá"
-        open={historyOpen}
-        onCancel={() => setHistoryOpen(false)}
-        footer={[
-          <Button key="close" onClick={() => setHistoryOpen(false)}>
-            Đóng
-          </Button>,
-        ]}
-        width={680}
-        destroyOnHidden
-      >
-        {deletedTasks.length === 0 ? (
-          <Empty description="Chưa có task nào bị xoá" />
-        ) : !isMobile ? (
-          <Table<DeletedTask>
-            rowKey="id"
-            pagination={false}
-            size="small"
-            scroll={{ x: 640 }}
-            columns={[
-              {
-                title: 'Tiêu đề',
-                dataIndex: 'title',
-                key: 'title',
-                render: (title: string) => <Typography.Text delete>{title}</Typography.Text>,
-              },
-              {
-                title: 'Phòng ban',
-                dataIndex: 'department',
-                key: 'department',
-                width: 90,
-                render: (d: Department) => <Tag color={DEPT_META[d].color}>{d}</Tag>,
-              },
-              {
-                title: 'Trạng thái',
-                dataIndex: 'status',
-                key: 'status',
-                width: 130,
-                render: (status: Status) => (
-                  <Tag color={STATUS_META[status].color}>{STATUS_META[status].label}</Tag>
-                ),
-              },
-              {
-                title: 'Thời điểm xoá',
-                dataIndex: 'deletedAt',
-                key: 'deletedAt',
-                width: 150,
-                render: (deletedAt: string) => (
-                  <Typography.Text type="secondary">
-                    {dayjs(deletedAt).format('DD/MM/YYYY HH:mm')}
-                  </Typography.Text>
-                ),
-              },
-              {
-                title: 'Thao tác',
-                key: 'actions',
-                width: 110,
-                render: (_: unknown, record: DeletedTask) => (
-                  <Button size="small" icon={<UndoOutlined />} onClick={() => restoreTask(record)}>
-                    Khôi phục
-                  </Button>
-                ),
-              },
-            ]}
-            dataSource={deletedTasks}
-          />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {deletedTasks.map((task) => (
-              <Card key={task.id} size="small">
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                  }}
-                >
-                  <Typography.Text delete style={{ flex: 1 }}>
-                    {task.title}
-                  </Typography.Text>
-                  <Tag
-                    color={STATUS_META[task.status].color}
-                    style={{ flexShrink: 0, marginInlineEnd: 0 }}
-                  >
-                    {STATUS_META[task.status].label}
-                  </Tag>
-                </div>
-                <div
-                  style={{
-                    marginTop: 10,
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                  }}
-                >
-                  <Tag color={DEPT_META[task.department].color}>{task.department}</Tag>
-                  <Tag icon={<CalendarOutlined />}>
-                    {task.deadline ? dayjs(task.deadline).format('DD/MM/YYYY') : '—'}
-                  </Tag>
-                </div>
-                <div
-                  style={{
-                    marginTop: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                  }}
-                >
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {dayjs(task.deletedAt).format('DD/MM/YYYY HH:mm')}
-                  </Typography.Text>
-                  <Button size="small" icon={<UndoOutlined />} onClick={() => restoreTask(task)}>
-                    Khôi phục
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
       </Modal>
     </Card>
   )
