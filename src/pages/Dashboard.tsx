@@ -127,7 +127,7 @@ function Dashboard() {
   const [current, setCurrent] = useState<Task | null>(null)
   const [saving, setSaving] = useState(false)
   const [images, setImages] = useState<string[]>([])
-  const [view, setView] = useState<ViewMode>('table')
+  const [view, setView] = useState<ViewMode>('kanban')
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
 
