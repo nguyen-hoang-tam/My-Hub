@@ -37,6 +37,7 @@ import {
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { taskApi, type Task } from '../api/tasks'
+import { migrateLegacyTasks } from '../migrate'
 
 type Department = 'Dev' | 'BA' | 'QC' | 'UXUI'
 type Status = 'new' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
@@ -132,20 +133,20 @@ function Dashboard() {
 
   useEffect(() => {
     let active = true
-    taskApi
-      .getAll()
-      .then((data) => {
+    ;(async () => {
+      await migrateLegacyTasks()
+      try {
+        const data = await taskApi.getAll()
         if (!active) return
         setTasks(data)
         setError(null)
-      })
-      .catch((e) => {
+      } catch (e) {
         if (!active) return
         setError(e instanceof Error ? e.message : 'Không thể tải task')
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false)
-      })
+      }
+    })()
     return () => {
       active = false
     }

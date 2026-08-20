@@ -1,12 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "rect-crud",
-  "main": "worker/index.ts",
-  "compatibility_date": "2026-08-11",
-  "assets": {
-    "directory": "./dist",
-    "binding": "ASSETS"
-  },
+  "name": "my-hub",
+  "compatibility_date": "2026-08-19",
+  "pages_build_output_dir": "./dist",
   "kv_namespaces": [
     { "binding": "PRODUCTS", "id": "d6172076780e495a98becf0fc8263b58" }
   ],
