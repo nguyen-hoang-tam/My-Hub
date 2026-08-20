@@ -368,7 +368,7 @@ function Dashboard() {
               </Tag>
             ))}
           </div>
-          <div className="task-header-tools">
+          <div  style = {{gap: '8px'}}className="task-header-tools">
             <Segmented
               block={isMobile}
               value={view}

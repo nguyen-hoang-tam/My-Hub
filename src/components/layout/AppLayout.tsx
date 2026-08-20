@@ -239,7 +239,7 @@ const layoutStyles = `
     color: rgba(0, 0, 0, 0.65) !important;
     border: 1px solid #e8e8e8;
     border-radius: 12px;
-    margin-right: 8px;
+    margin-right: 4px;
     background: #fff;
     height: 50px !important;
     width: 50px !important;
