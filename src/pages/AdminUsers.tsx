@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   App,
+  Avatar,
   Button,
   Card,
   Dropdown,
@@ -173,13 +174,33 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
   }
 
   const columns: ColumnsType<AdminUser> = [
-    { title: 'Tên', dataIndex: 'name', key: 'name' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
+    {
+      title: 'Tên',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string) => (
+        <Space>
+          <Avatar size={32} style={{ background: '#0047ad', fontWeight: 600 }}>
+            {name.charAt(0).toUpperCase()}
+          </Avatar>
+          <span style={{ fontWeight: 600 }}>{name}</span>
+        </Space>
+      ),
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      render: (email: string) => (
+        <Typography.Text type="secondary">{email}</Typography.Text>
+      ),
+    },
     {
       title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
-      width: 130,
+      width: 150,
+      align: 'center',
       render: (role: UserRole) => (
         <Tag color={role === 'admin' ? 'gold' : 'blue'}>
           {role === 'admin' ? 'Quản trị viên' : 'Thành viên'}
@@ -190,21 +211,24 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 110,
+      width: 120,
+      align: 'center',
       render: (value: number) => new Date(value).toLocaleDateString('vi-VN'),
     },
     {
       title: 'Trạng thái',
       dataIndex: 'disabled',
       key: 'disabled',
-      width: 110,
+      width: 120,
+      align: 'center',
       render: (_, record) =>
         record.disabled ? <Tag color="error">Đã khóa</Tag> : <Tag color="success">Hoạt động</Tag>,
     },
     {
       title: 'Khóa/Mở',
       key: 'toggle',
-      width: 90,
+      width: 100,
+      align: 'center',
       render: (_, record) =>
         record.email === currentEmail ? (
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -220,7 +244,8 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
     {
       title: '',
       key: 'action',
-      width: 60,
+      width: 70,
+      align: 'center',
       render: (_, record) => (
         <Dropdown
           menu={{
@@ -322,7 +347,8 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
           dataSource={users}
           loading={listLoading}
           pagination={false}
-          scroll={{ x: 800 }}
+          size="middle"
+          scroll={{ x: 860 }}
         />
       </Card>
 
