@@ -330,13 +330,19 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
         <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
           Tài khoản mới có thể đăng nhập ngay sau khi được tạo.
         </Typography.Paragraph>
-        <Form form={createForm} layout="vertical" onFinish={submitCreate}>
+        <Form
+          form={createForm}
+          layout="vertical"
+          onFinish={submitCreate}
+          preserve={false}
+          initialValues={{ role: 'user' }}
+        >
           <Form.Item
             label="Họ và tên"
             name="name"
             rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
           >
-            <Input placeholder="Nguyễn Văn A" />
+            <Input placeholder="Nguyễn Văn A" autoComplete="off" />
           </Form.Item>
           <Form.Item
             label="Email"
@@ -346,7 +352,7 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
               { type: 'email', message: 'Email không hợp lệ' },
             ]}
           >
-            <Input placeholder="user@company.com" />
+            <Input placeholder="user@company.com" autoComplete="off" />
           </Form.Item>
           <Form.Item
             label="Mật khẩu"
@@ -356,7 +362,7 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
               { min: 6, message: 'Mật khẩu tối thiểu 6 ký tự' },
             ]}
           >
-            <Input.Password placeholder="••••••••" />
+            <Input.Password placeholder="••••••••" autoComplete="new-password" />
           </Form.Item>
           <Form.Item label="Vai trò" name="role" initialValue="user">
             <Select
@@ -379,13 +385,13 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
         cancelText="Hủy"
         destroyOnHidden
       >
-        <Form form={editForm} layout="vertical" onFinish={saveEdit}>
+        <Form form={editForm} layout="vertical" onFinish={saveEdit} preserve={false}>
           <Form.Item
             label="Họ và tên"
             name="name"
             rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
           >
-            <Input placeholder="Nguyễn Văn A" />
+            <Input placeholder="Nguyễn Văn A" autoComplete="off" />
           </Form.Item>
           <Form.Item label="Vai trò" name="role">
             <Select
