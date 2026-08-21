@@ -19,6 +19,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   MoreOutlined,
+  PlusOutlined,
   ReloadOutlined,
   UserAddOutlined,
 } from '@ant-design/icons'
@@ -40,13 +41,19 @@ interface AdminUsersProps {
 
 function AdminUsers({ currentEmail }: AdminUsersProps) {
   const { message, modal } = App.useApp()
-  const [form] = Form.useForm()
+  const [createForm] = Form.useForm<{
+    name: string
+    email: string
+    password: string
+    role: UserRole
+  }>()
   const [editForm] = Form.useForm<{ name: string; role: UserRole }>()
-  const [loading, setLoading] = useState(false)
   const [listLoading, setListLoading] = useState(true)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [editing, setEditing] = useState<AdminUser | null>(null)
   const [editSaving, setEditSaving] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createSaving, setCreateSaving] = useState(false)
 
   const loadUsers = async () => {
     setListLoading(true)
@@ -79,25 +86,30 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const onFinish = async (values: {
+  const openCreate = () => {
+    createForm.resetFields()
+    setCreateOpen(true)
+  }
+
+  const submitCreate = async (values: {
     name: string
     email: string
     password: string
     role: UserRole
   }) => {
-    setLoading(true)
+    setCreateSaving(true)
     try {
       await request('/api/admin/users', {
         method: 'POST',
         body: JSON.stringify(values),
       })
       message.success(`Đã tạo tài khoản ${values.email}`)
-      form.resetFields()
+      setCreateOpen(false)
       await loadUsers()
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Lỗi tạo tài khoản')
     } finally {
-      setLoading(false)
+      setCreateSaving(false)
     }
   }
 
@@ -277,19 +289,48 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
   ]
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card
+    <Card
+      title="Danh sách tài khoản"
+      extra={
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={loadUsers} loading={listLoading}>
+            Làm mới
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            Thêm tài khoản
+          </Button>
+        </Space>
+      }
+    >
+      <Table
+        rowKey="email"
+        columns={columns}
+        dataSource={users}
+        loading={listLoading}
+        pagination={false}
+        size="middle"
+        scroll={{ x: 860 }}
+      />
+
+      <Modal
         title={
           <Space>
             <UserAddOutlined />
-            Tạo tài khoản mới
+            Thêm tài khoản mới
           </Space>
         }
+        open={createOpen}
+        onCancel={() => setCreateOpen(false)}
+        onOk={() => createForm.submit()}
+        confirmLoading={createSaving}
+        okText="Tạo tài khoản"
+        cancelText="Hủy"
+        destroyOnHidden
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          Chỉ Quản trị viên mới có quyền tạo tài khoản cho người khác.
+          Tài khoản mới có thể đăng nhập ngay sau khi được tạo.
         </Typography.Paragraph>
-        <Form form={form} layout="vertical" onFinish={onFinish} style={{ maxWidth: 480 }}>
+        <Form form={createForm} layout="vertical" onFinish={submitCreate}>
           <Form.Item
             label="Họ và tên"
             name="name"
@@ -325,32 +366,8 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
               ]}
             />
           </Form.Item>
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Tạo tài khoản
-            </Button>
-          </Form.Item>
         </Form>
-      </Card>
-
-      <Card
-        title="Danh sách tài khoản"
-        extra={
-          <Button icon={<ReloadOutlined />} onClick={loadUsers} loading={listLoading}>
-            Làm mới
-          </Button>
-        }
-      >
-        <Table
-          rowKey="email"
-          columns={columns}
-          dataSource={users}
-          loading={listLoading}
-          pagination={false}
-          size="middle"
-          scroll={{ x: 860 }}
-        />
-      </Card>
+      </Modal>
 
       <Modal
         title={`Sửa tài khoản: ${editing?.email ?? ''}`}
@@ -380,7 +397,7 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
           </Form.Item>
         </Form>
       </Modal>
-    </Space>
+    </Card>
   )
 }
 
