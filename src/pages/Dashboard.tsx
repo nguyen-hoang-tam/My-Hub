@@ -29,6 +29,7 @@ import {
   CheckCircleOutlined,
   CheckOutlined,
   CloseOutlined,
+  CopyOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
@@ -200,6 +201,20 @@ function Dashboard() {
     setOpen(true)
   }
 
+  // Nhân bản: mở form tạo mới với sẵn dữ liệu của task gốc để sửa rồi lưu
+  const openCopy = (task: Task) => {
+    setMode('create')
+    setCurrent(null)
+    setImagesSync([...(task.images ?? [])])
+    form.setFieldsValue({
+      title: task.title,
+      departments: taskDepartments(task),
+      status: task.status,
+      deadline: task.deadline ? dayjs(task.deadline) : null,
+    })
+    setOpen(true)
+  }
+
   // Tag phòng ban
   const deptTags = (task: Task) => (
     <>
@@ -350,9 +365,17 @@ function Dashboard() {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 90,
+      width: 120,
       render: (_: unknown, record: Task) => (
         <Space size={0} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Nhân bản task">
+            <Button
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => openCopy(record)}
+            />
+          </Tooltip>
           <Popconfirm
             title="Xóa task"
             description={`Xóa task "${record.title}"?`}
@@ -436,17 +459,29 @@ function Dashboard() {
         .task-image-preview { border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; max-width: 320px; }
         .task-image-preview img { display: block; width: 100%; height: auto; object-fit: cover; }
         :root[data-theme='dark'] .task-image-preview { border-color: #303030; }
-        .kanban-board { display: flex; gap: 16px; overflow-x: auto; align-items: flex-start; padding-bottom: 8px; }
-        .kanban-column { flex: 1 1 0; min-width: 280px; background: rgba(0,0,0,0.03); border: 1px solid #f0f0f0; border-radius: 12px; padding: 12px; transition: border-color 0.2s, background 0.2s; }
+        .kanban-board { display: flex; gap: 16px; overflow-x: auto; align-items: stretch; padding-bottom: 8px; height: calc(100svh - 250px); min-height: 420px; }
+        .kanban-column { flex: 1 1 0; min-width: 280px; background: rgba(0,0,0,0.03); border: 1px solid #f0f0f0; border-radius: 12px; padding: 12px; transition: border-color 0.2s, background 0.2s; display: flex; flex-direction: column; min-height: 0; }
         .kanban-column.drag-over { border-color: #1677ff; background: rgba(22,119,255,0.06); }
         :root[data-theme='dark'] .kanban-column { background: rgba(255,255,255,0.04); border-color: #303030; }
         :root[data-theme='dark'] .kanban-column.drag-over { border-color: #1677ff; background: rgba(22,119,255,0.15); }
-        .kanban-column-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .kanban-column-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+        .kanban-column-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px; scrollbar-width: thin; }
+        .kanban-column-body::-webkit-scrollbar { width: 6px; }
+        .kanban-column-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 3px; }
+        :root[data-theme='dark'] .kanban-column-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); }
         .kanban-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .kanban-count { margin-inline-end: 0; }
         .kanban-card { cursor: grab; }
         .kanban-card:active { cursor: grabbing; }
         .kanban-card.dragging { opacity: 0.4; }
+        .kanban-card-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        .kanban-card-title > .ant-typography { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        .kanban-card-actions { opacity: 0; transition: opacity 0.2s; flex-shrink: 0; margin: -4px -6px -4px 0; }
+        .kanban-card:hover .kanban-card-actions,
+        .kanban-card:focus-within .kanban-card-actions { opacity: 1; }
+        @media (hover: none) {
+          .kanban-card-actions { opacity: 1; }
+        }
         .status-description { margin-top: -8px; margin-bottom: 16px; padding: 8px 12px; background: rgba(0,0,0,0.02); border-radius: 8px; }
         :root[data-theme='dark'] .status-description { background: rgba(255,255,255,0.04); }
         .task-view-layout { display: flex; gap: 32px; align-items: stretch; }
@@ -530,7 +565,7 @@ function Dashboard() {
                   {tasks.filter((t) => t.status === col.status).length}
                 </Tag>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="kanban-column-body">
                 {tasks
                   .filter((t) => t.status === col.status)
                   .map((task) => (
@@ -543,17 +578,32 @@ function Dashboard() {
                       onDragEnd={() => setDragId(null)}
                       onClick={() => openView(task)}
                     >
-                      <Typography.Text
-                        strong
-                        delete={task.status === 'completed' || task.status === 'cancelled'}
-                        type={
-                          task.status === 'completed' || task.status === 'cancelled'
-                            ? 'secondary'
-                            : undefined
-                        }
-                      >
-                        {task.title}
-                      </Typography.Text>
+                      <div className="kanban-card-title">
+                        <Typography.Text
+                          strong
+                          delete={task.status === 'completed' || task.status === 'cancelled'}
+                          type={
+                            task.status === 'completed' || task.status === 'cancelled'
+                              ? 'secondary'
+                              : undefined
+                          }
+                        >
+                          {task.title}
+                        </Typography.Text>
+                        <div className="kanban-card-actions">
+                          <Tooltip title="Nhân bản task">
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<CopyOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openCopy(task)
+                              }}
+                            />
+                          </Tooltip>
+                        </div>
+                      </div>
                       <div
                         style={{
                           marginTop: 10,
@@ -646,6 +696,16 @@ function Dashboard() {
                   gap: 8,
                 }}
               >
+                <Button
+                  size="small"
+                  icon={<CopyOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    openCopy(task)
+                  }}
+                >
+                  Copy
+                </Button>
                 <Popconfirm
                   title="Xóa task"
                   description={`Xóa task "${task.title}"?`}
@@ -703,6 +763,14 @@ function Dashboard() {
           mode === 'view' ? (
             <Space>
               <Button onClick={() => setOpen(false)}>Đóng</Button>
+              <Button
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  if (current) openCopy(current)
+                }}
+              >
+                Nhân bản
+              </Button>
               <Button type="primary" icon={<EditOutlined />} onClick={() => setMode('edit')}>
                 Sửa
               </Button>
