@@ -21,7 +21,7 @@ const STATUSES = ['new', 'in_progress', 'on_hold', 'completed', 'cancelled'] as 
 function normalize(stored: StoredTask): Task | null {
   if (!stored || typeof stored.title !== 'string' || stored.title.trim() === '') return null
   const department = DEPARTMENTS.includes(stored.department as (typeof DEPARTMENTS)[number])
-    ? (stored.department as Task['department'])
+    ? (stored.department as Task['departments'][number])
     : 'Dev'
   let status = stored.status as Task['status']
   if (!STATUSES.includes(status)) {
@@ -36,7 +36,7 @@ function normalize(stored: StoredTask): Task | null {
   return {
     id: stored.id ?? crypto.randomUUID(),
     title: stored.title.trim(),
-    department,
+    departments: [department],
     status,
     deadline: typeof stored.deadline === 'string' && stored.deadline ? stored.deadline : null,
     images,
@@ -76,7 +76,7 @@ export async function migrateLegacyTasks(): Promise<number> {
       try {
         await taskApi.create({
           title: task.title,
-          department: task.department,
+          departments: task.departments,
           status: task.status,
           deadline: task.deadline,
           images: task.images,

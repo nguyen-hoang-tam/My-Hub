@@ -1,9 +1,11 @@
 import { request } from './client'
 
+export type Department = 'Dev' | 'BA' | 'QC' | 'UXUI'
+
 export interface Task {
   id: string
   title: string
-  department: 'Dev' | 'BA' | 'QC' | 'UXUI'
+  departments: Department[]
   status: 'new' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
   deadline: string | null
   images: string[]

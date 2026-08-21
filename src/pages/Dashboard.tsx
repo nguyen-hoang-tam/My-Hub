@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   App,
   Alert,
@@ -36,10 +36,9 @@ import {
   UnorderedListOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { taskApi, type Task } from '../api/tasks'
+import { taskApi, type Department, type Task } from '../api/tasks'
 import { migrateLegacyTasks } from '../migrate'
 
-type Department = 'Dev' | 'BA' | 'QC' | 'UXUI'
 type Status = 'new' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
 
 const DEPARTMENTS: Department[] = ['Dev', 'BA', 'QC', 'UXUI']
@@ -117,7 +116,7 @@ function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [form] = Form.useForm<{
     title: string
-    department: Department
+    departments: Department[]
     status: Status
     deadline: dayjs.Dayjs | null
   }>()
@@ -127,6 +126,11 @@ function Dashboard() {
   const [current, setCurrent] = useState<Task | null>(null)
   const [saving, setSaving] = useState(false)
   const [images, setImages] = useState<string[]>([])
+  // Ref đồng bộ với images để handleSave luôn dùng giá trị mới nhất
+  // (tránh stale closure khi FileReader đọc ảnh xong sau khi bấm Lưu)
+  const imagesRef = useRef<string[]>([])
+  // Các ảnh đang được đọc dở; handleSave phải chờ hết trước khi gửi
+  const pendingUploadsRef = useRef<Promise<void>[]>([])
   const [view, setView] = useState<ViewMode>('kanban')
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
@@ -164,10 +168,21 @@ function Dashboard() {
       )
   }
 
+  const setImagesSync = (next: string[]) => {
+    imagesRef.current = next
+    setImages(next)
+  }
+
+  // Phòng hờ: dữ liệu cũ có thể chưa được normalize thành mảng
+  const taskDepartments = (task: Task): Department[] =>
+    Array.isArray(task.departments)
+      ? task.departments
+      : []
+
   const openCreate = () => {
     setMode('create')
     setCurrent(null)
-    setImages([])
+    setImagesSync([])
     form.resetFields()
     setOpen(true)
   }
@@ -175,43 +190,63 @@ function Dashboard() {
   const openView = (task: Task) => {
     setMode('view')
     setCurrent(task)
-    setImages(task.images ?? [])
+    setImagesSync(task.images ?? [])
     form.setFieldsValue({
       title: task.title,
-      department: task.department,
+      departments: taskDepartments(task),
       status: task.status,
       deadline: task.deadline ? dayjs(task.deadline) : null,
     })
     setOpen(true)
   }
 
+  // Tag phòng ban
+  const deptTags = (task: Task) => (
+    <>
+      {taskDepartments(task).map((d) => (
+        <Tag key={d} color={DEPT_META[d].color}>
+          {d}
+        </Tag>
+      ))}
+    </>
+  )
+
   const handleSave = async () => {
     const values = await form.validateFields().catch(() => null)
     if (!values) return
+    // Chờ các ảnh đang đọc dở để đảm bảo lưu đủ danh sách ảnh
+    if (pendingUploadsRef.current.length > 0) {
+      await Promise.all(pendingUploadsRef.current)
+      pendingUploadsRef.current = []
+    }
     const deadline = values.deadline ? values.deadline.format('YYYY-MM-DD') : null
+    const finalImages = imagesRef.current
     setSaving(true)
     try {
       if (mode === 'create') {
-        await taskApi.create({
+        const created = await taskApi.create({
           title: values.title,
-          department: values.department,
+          departments: values.departments,
           status: values.status,
           deadline,
-          images,
+          images: finalImages,
         })
+        setTasks((prev) => [created, ...prev])
         message.success('Đã tạo task')
       } else if (mode === 'edit' && current) {
-        await taskApi.update(current.id, {
+        const updated = await taskApi.update(current.id, {
           title: values.title,
-          department: values.department,
+          departments: values.departments,
           status: values.status,
           deadline,
-          images,
+          images: finalImages,
         })
+        // Dùng ngay response của PUT thay vì GET lại (KV có thể trả dữ liệu cũ)
+        setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
         message.success('Đã cập nhật task')
       }
       setOpen(false)
-      refresh()
+      setError(null)
     } catch (e) {
       message.error(e instanceof Error ? e.message : 'Không thể lưu task')
     } finally {
@@ -234,9 +269,9 @@ function Dashboard() {
   const setTaskStatus = (task: Task, status: Status) => {
     taskApi
       .update(task.id, { status })
-      .then(() => {
+      .then((updated) => {
+        setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
         message.success(`Đã chuyển task sang "${STATUS_META[status].label}"`)
-        refresh()
       })
       .catch((e) =>
         message.error('Cập nhật thất bại: ' + (e instanceof Error ? e.message : e)),
@@ -288,10 +323,14 @@ function Dashboard() {
     },
     {
       title: 'Phòng ban',
-      dataIndex: 'department',
-      key: 'department',
-      width: 110,
-      render: (d: Department) => <Tag color={DEPT_META[d].color}>{d}</Tag>,
+      dataIndex: 'departments',
+      key: 'departments',
+      width: 150,
+      render: (_: unknown, record: Task) => (
+        <Space size={4} wrap>
+          {deptTags(record)}
+        </Space>
+      ),
     },
     {
       title: 'Hạn chót',
@@ -523,7 +562,7 @@ function Dashboard() {
                           gap: 6,
                         }}
                       >
-                        <Tag color={DEPT_META[task.department].color}>{task.department}</Tag>
+                        {deptTags(task)}
                         {task.deadline && (
                           <Tag icon={<CalendarOutlined />}>
                             {dayjs(task.deadline).format('DD/MM/YYYY')}
@@ -594,7 +633,7 @@ function Dashboard() {
                   gap: 8,
                 }}
               >
-                <Tag color={DEPT_META[task.department].color}>{task.department}</Tag>
+                {deptTags(task)}
                 {task.deadline && (
                   <Tag icon={<CalendarOutlined />}>{dayjs(task.deadline).format('DD/MM/YYYY')}</Tag>
                 )}
@@ -694,13 +733,28 @@ function Dashboard() {
                   <Input placeholder="Nhập tiêu đề task" maxLength={120} showCount />
                 </Form.Item>
                 <Form.Item
-                  name="department"
+                  name="departments"
                   label="Phòng ban"
                   rules={[{ required: true, message: 'Vui lòng chọn phòng ban' }]}
                 >
                   <Select
+                    mode="multiple"
                     placeholder="Chọn phòng ban"
                     options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+                    tagRender={(props) => {
+                      const { value, closable, onClose } = props
+                      const d = value as Department
+                      return (
+                        <Tag
+                          color={DEPT_META[d]?.color}
+                          closable={closable}
+                          onClose={onClose}
+                          style={{ marginInlineEnd: 4 }}
+                        >
+                          {d}
+                        </Tag>
+                      )
+                    }}
                   />
                 </Form.Item>
                 <Form.Item
@@ -790,7 +844,7 @@ function Dashboard() {
                           borderRadius: 6,
                         }}
                         onClick={() =>
-                          setImages((prev) => prev.filter((_, i) => i !== index))
+                          setImagesSync(imagesRef.current.filter((_, i) => i !== index))
                         }
                       />
                     </div>
@@ -804,10 +858,16 @@ function Dashboard() {
                         message.warning('Ảnh tối đa 5MB')
                         return Upload.LIST_IGNORE
                       }
-                      const reader = new FileReader()
-                      reader.onload = () =>
-                        setImages((prev) => [...prev, reader.result as string])
-                      reader.readAsDataURL(file)
+                      const pending = new Promise<void>((resolve) => {
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          setImagesSync([...imagesRef.current, reader.result as string])
+                          resolve()
+                        }
+                        reader.onerror = () => resolve()
+                        reader.readAsDataURL(file)
+                      })
+                      pendingUploadsRef.current.push(pending)
                       return false
                     }}
                   >
