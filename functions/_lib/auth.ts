@@ -8,6 +8,8 @@ export interface StoredUser {
   role: UserRole;
   salt: string;
   passwordHash: string;
+  // Bản gốc để admin tra cứu lại (chỉ trả về qua API chi tiết, không nằm trong danh sách)
+  password?: string;
   createdAt: number;
   createdBy?: string;
   disabled?: boolean;

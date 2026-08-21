@@ -4,12 +4,14 @@ import {
   Avatar,
   Button,
   Card,
+  Descriptions,
   Dropdown,
   Form,
   Input,
   Modal,
   Select,
   Space,
+  Spin,
   Switch,
   Table,
   Tag,
@@ -35,6 +37,10 @@ interface AdminUser {
   disabled: boolean
 }
 
+interface AdminUserDetail extends AdminUser {
+  password?: string | null
+}
+
 interface AdminUsersProps {
   currentEmail: string
 }
@@ -54,6 +60,24 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
   const [editSaving, setEditSaving] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [createSaving, setCreateSaving] = useState(false)
+  const [viewing, setViewing] = useState<AdminUser | null>(null)
+  const [detail, setDetail] = useState<AdminUserDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  const openDetail = (user: AdminUser) => {
+    setViewing(user)
+    setDetail(null)
+    setDetailLoading(true)
+    request<AdminUserDetail>(`/api/admin/users?email=${encodeURIComponent(user.email)}`)
+      .then(setDetail)
+      .catch(() => message.error('Không tải được thông tin chi tiết'))
+      .finally(() => setDetailLoading(false))
+  }
+
+  const closeDetail = () => {
+    setViewing(null)
+    setDetail(null)
+  }
 
   const loadUsers = async () => {
     setListLoading(true)
@@ -247,10 +271,12 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
             Bạn
           </Typography.Text>
         ) : (
-          <Switch
-            checked={!record.disabled}
-            onChange={(checked) => toggleDisabled(record, !checked)}
-          />
+          <span onClick={(e) => e.stopPropagation()}>
+            <Switch
+              checked={!record.disabled}
+              onChange={(checked) => toggleDisabled(record, !checked)}
+            />
+          </span>
         ),
     },
     {
@@ -259,6 +285,7 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
       width: 70,
       align: 'center',
       render: (_, record) => (
+        <span onClick={(e) => e.stopPropagation()}>
         <Dropdown
           menu={{
             items: [
@@ -284,6 +311,7 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
         >
           <Button type="text" icon={<MoreOutlined />} />
         </Dropdown>
+        </span>
       ),
     },
   ]
@@ -310,7 +338,64 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
         pagination={false}
         size="middle"
         scroll={{ x: 860 }}
+        onRow={(record) => ({
+          onClick: () => openDetail(record),
+          style: { cursor: 'pointer' },
+        })}
       />
+
+      <Modal
+        title="Thông tin chi tiết tài khoản"
+        open={!!viewing}
+        onCancel={closeDetail}
+        footer={[
+          <Button key="close" type="primary" onClick={closeDetail}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        {detailLoading || !detail ? (
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <Spin />
+          </div>
+        ) : (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space size={12}>
+              <Avatar size={48} style={{ background: '#0047ad', fontSize: 20, fontWeight: 600 }}>
+                {detail.name.charAt(0).toUpperCase()}
+              </Avatar>
+              <div>
+                <Typography.Text strong style={{ fontSize: 16 }}>
+                  {detail.name}
+                </Typography.Text>
+                <div>
+                  <Tag color={detail.role === 'admin' ? 'gold' : 'blue'} style={{ marginTop: 4 }}>
+                    {detail.role === 'admin' ? 'Quản trị viên' : 'Thành viên'}
+                  </Tag>
+                  {detail.disabled && <Tag color="error">Đã khóa</Tag>}
+                </div>
+              </div>
+            </Space>
+            <Descriptions column={1} bordered size="small">
+              <Descriptions.Item label="Email">
+                <Typography.Text copyable>{detail.email}</Typography.Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Mật khẩu">
+                {detail.password ? (
+                  <Typography.Text copyable code>
+                    {detail.password}
+                  </Typography.Text>
+                ) : (
+                  <Typography.Text type="secondary">Không khả dụng</Typography.Text>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày tạo">
+                {new Date(detail.createdAt).toLocaleDateString('vi-VN')}
+              </Descriptions.Item>
+            </Descriptions>
+          </Space>
+        )}
+      </Modal>
 
       <Modal
         title={

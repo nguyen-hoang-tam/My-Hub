@@ -20,6 +20,15 @@ const VALID_ROLES: UserRole[] = ['user', 'admin'];
 export const onRequestGet = async (context: { request: Request; env: Env }): Promise<Response> => {
   const auth = await requireAdmin(context.request, context.env);
   if ('error' in auth) return auth.error;
+
+  // Chi tiết 1 user (bao gồm mật khẩu gốc để admin tra cứu)
+  const emailParam = new URL(context.request.url).searchParams.get('email');
+  if (emailParam) {
+    const user = await getUserByEmail(context.env, normalizeEmail(emailParam));
+    if (!user) return jsonError('Không tìm thấy user', 404);
+    return Response.json({ ...toPublicUser(user), password: user.password ?? null });
+  }
+
   const users = await listJson<StoredUser>(context.env.PRODUCTS, 'user:');
   return Response.json(users.map(toPublicUser).sort((a, b) => a.createdAt - b.createdAt));
 };
@@ -57,6 +66,7 @@ export const onRequestPost = async (context: {
     role,
     salt,
     passwordHash: await hashPassword(password, salt),
+    password,
     createdAt: Date.now(),
     createdBy: auth.user.email,
   };
