@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { App, Button, Form, Input, Typography } from 'antd'
+import { App, Button, Divider, Form, Input, Typography } from 'antd'
 import {
+  GoogleOutlined,
   LockOutlined,
   MailOutlined,
   MoonOutlined,
+  SafetyCertificateOutlined,
   SunOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -65,6 +67,16 @@ const loginStyles = `
     margin-bottom: 24px;
   }
 
+  .login-sso {
+    width: 100%;
+    height: 42px;
+    font-weight: 600;
+  }
+
+  .login-remember {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
   .login-theme-toggle {
     position: fixed;
     top: 16px;
@@ -83,6 +95,10 @@ const loginStyles = `
 
   :root[data-theme='dark'] .login-brand-name {
     color: #f2f2f5;
+  }
+
+  :root[data-theme='dark'] .login-sso {
+    color: rgba(255, 255, 255, 0.85);
   }
 `
 
@@ -153,6 +169,10 @@ function Login({ onSuccess }: LoginProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSso = () => {
+    message.info('Tính năng SSO sẽ sớm ra mắt. Vui lòng đăng nhập bằng email.')
   }
 
   return (
@@ -256,6 +276,30 @@ function Login({ onSuccess }: LoginProps) {
               </>
             )}
           </Typography.Paragraph>
+
+          {authMode === 'login' && (
+            <>
+              <Divider plain style={{ fontSize: 12, marginTop: 16 }}>
+                hoặc đăng nhập bằng
+              </Divider>
+
+              <Button
+                className="login-sso"
+                icon={<GoogleOutlined />}
+                onClick={handleSso}
+              >
+                SSO công ty
+              </Button>
+
+              <Typography.Paragraph
+                className="login-sso login-remember"
+                style={{ marginTop: 16, marginBottom: 0, textAlign: 'center' }}
+              >
+                <SafetyCertificateOutlined style={{ marginRight: 6 }} />
+                Bảo mật & đăng nhập một lần (SSO)
+              </Typography.Paragraph>
+            </>
+          )}
         </div>
       </div>
     </>
