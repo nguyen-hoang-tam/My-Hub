@@ -8,14 +8,15 @@ import {
   MenuOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
-  SettingOutlined,
   ShoppingCartOutlined,
   SunOutlined,
   TagOutlined,
+  TeamOutlined,
 } from '@ant-design/icons'
-import { clearStoredUser, type User } from '../../auth'
+import { clearAuth, roleLabel, type User } from '../../auth'
 import { useTheme } from '../../theme-context'
 import Dashboard from '../../pages/Dashboard'
+import AdminUsers from '../../pages/AdminUsers'
 
 const layoutStyles = `
   .layout {
@@ -374,22 +375,22 @@ const layoutStyles = `
   }
 `
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { key: 'dashboard', icon: <AppstoreOutlined />, label: 'Ghi chú ' },
   { key: 'products', icon: <ShoppingCartOutlined />, label: 'Sản phẩm' },
   { key: 'categories', icon: <TagOutlined />, label: 'Danh mục' },
   { key: 'orders', icon: <BarChartOutlined />, label: 'Đơn hàng' },
   { key: 'reports', icon: <BarChartOutlined />, label: 'Báo cáo' },
-  {
-    key: 'settings',
-    icon: <SettingOutlined />,
-    label: 'Cài đặt',
-    children: [
-      { key: 'zns', label: 'Cấu hình ZNS' },
-      { key: 'zns-history', label: 'Lịch sử gửi ZNS' },
-    ],
-  },
 ]
+
+function buildNavItems(isAdmin: boolean) {
+  return [
+    ...BASE_NAV_ITEMS,
+    ...(isAdmin
+      ? [{ key: 'admin-users', icon: <TeamOutlined />, label: 'Quản lý người dùng' }]
+      : []),
+  ]
+}
 
 const PAGE_TITLES: Record<string, string> = {
   dashboard: 'Ghi chú',
@@ -397,11 +398,10 @@ const PAGE_TITLES: Record<string, string> = {
   categories: 'Danh mục',
   orders: 'Đơn hàng',
   reports: 'Báo cáo',
-  zns: 'Cấu hình ZNS',
-  'zns-history': 'Lịch sử gửi ZNS',
+  'admin-users': 'Quản lý người dùng',
 }
 
-const NO_DATA_PAGES = new Set(['products', 'categories', 'orders', 'reports', 'zns', 'zns-history'])
+const NO_DATA_PAGES = new Set(['products', 'categories', 'orders', 'reports'])
 
 function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [activeKey, setActiveKey] = useState('dashboard')
@@ -410,6 +410,8 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { mode, toggle } = useTheme()
   const screens = Grid.useBreakpoint()
   const isMobile = !screens.lg
+  const isAdmin = user.role === 'admin'
+  const navItems = buildNavItems(isAdmin)
 
   function handleNavigate(key: string) {
     setActiveKey(key)
@@ -419,7 +421,7 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
   const accountMenu = {
     items: [{ key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất' }],
     onClick: () => {
-      clearStoredUser()
+      clearAuth()
       onLogout()
     },
   }
@@ -437,7 +439,7 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
         mode="inline"
         inlineCollapsed={!isMobile ? collapsed : false}
         selectedKeys={[activeKey]}
-        items={NAV_ITEMS}
+        items={navItems}
         onClick={({ key }) => handleNavigate(key)}
       />
     </>
@@ -493,7 +495,7 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
               {!isMobile && (
                 <div className="topbar-title">
                   <Typography.Title level={4} style={{ margin: 0 }}>
-                    {PAGE_TITLES[activeKey] ?? NAV_ITEMS.find((i) => i.key === activeKey)?.label ?? ''}
+                    {PAGE_TITLES[activeKey] ?? navItems.find((i) => i.key === activeKey)?.label ?? ''}
                   </Typography.Title>
                   <Typography.Text type="secondary">
                     {activeKey === 'dashboard'
@@ -519,7 +521,7 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
                   </Avatar>
                   <div>
                     <div className="user-name">{user.name}</div>
-                    <div className="user-role">{user.role}</div>
+                    <div className="user-role">{roleLabel(user.role)}</div>
                   </div>
                 </div>
               </Dropdown>
@@ -529,6 +531,18 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
           <Layout.Content className="content">
             {activeKey === 'dashboard' ? (
               <Dashboard />
+            ) : activeKey === 'admin-users' ? (
+              isAdmin ? (
+                <AdminUsers currentEmail={user.email} />
+              ) : (
+                <Card style={{ marginTop: 16 }}>
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Bạn không có quyền truy cập trang này"
+                    style={{ padding: '48px 0' }}
+                  />
+                </Card>
+              )
             ) : NO_DATA_PAGES.has(activeKey) ? (
               <Card style={{ marginTop: 16 }}>
                 <Empty

@@ -5,6 +5,7 @@ export type Status = 'new' | 'in_progress' | 'on_hold' | 'completed' | 'cancelle
 
 export interface Task {
   id: string;
+  userId: string;
   title: string;
   departments: Department[];
   status: Status;
@@ -14,7 +15,7 @@ export interface Task {
   updatedAt: number;
 }
 
-export type TaskInput = Omit<Task, 'id' | 'createdAt' | 'updatedAt'>;
+export type TaskInput = Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 
 const PREFIX = 'task:';
 
@@ -118,10 +119,11 @@ export function validateTask(
   };
 }
 
-export async function listTasks(kv: KVNamespace): Promise<Task[]> {
+export async function listTasks(kv: KVNamespace, userId: string): Promise<Task[]> {
   const tasks = await listJson<Task>(kv, PREFIX);
   return tasks
     .map(normalizeTask)
+    .filter((t) => t.userId === userId)
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
@@ -130,12 +132,17 @@ export async function getTask(kv: KVNamespace, id: string): Promise<Task | null>
   return raw ? normalizeTask(JSON.parse(raw) as RawTask) : null;
 }
 
-export async function createTask(kv: KVNamespace, body: unknown): Promise<{ error: string } | { task: Task }> {
+export async function createTask(
+  kv: KVNamespace,
+  body: unknown,
+  userId: string
+): Promise<{ error: string } | { task: Task }> {
   const valid = validateTask(body);
   if ('error' in valid) return { error: valid.error };
   const now = Date.now();
   const task: Task = {
     id: makeId(),
+    userId,
     ...valid.value,
     createdAt: now,
     updatedAt: now,
@@ -147,10 +154,11 @@ export async function createTask(kv: KVNamespace, body: unknown): Promise<{ erro
 export async function updateTask(
   kv: KVNamespace,
   id: string,
-  body: unknown
+  body: unknown,
+  userId: string
 ): Promise<{ error: string; notFound?: boolean } | { task: Task }> {
   const existing = await getTask(kv, id);
-  if (!existing) return { error: 'Không tìm thấy task', notFound: true };
+  if (!existing || existing.userId !== userId) return { error: 'Không tìm thấy task', notFound: true };
   if (!body || typeof body !== 'object') {
     return { error: 'Body không hợp lệ' };
   }
@@ -168,6 +176,9 @@ export async function updateTask(
   return { task: updated };
 }
 
-export async function deleteTask(kv: KVNamespace, id: string): Promise<void> {
+export async function deleteTask(kv: KVNamespace, id: string, userId: string): Promise<boolean> {
+  const existing = await getTask(kv, id);
+  if (!existing || existing.userId !== userId) return false;
   await kv.delete(keyOf(id));
+  return true;
 }
