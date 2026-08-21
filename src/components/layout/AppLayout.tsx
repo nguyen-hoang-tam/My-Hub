@@ -2,16 +2,15 @@ import { useState } from 'react'
 import { Avatar, Button, Card, Drawer, Dropdown, Empty, Grid, Layout, Menu, Typography } from 'antd'
 import {
   AppstoreOutlined,
-  BarChartOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
-  ShoppingCartOutlined,
   SunOutlined,
-  TagOutlined,
   TeamOutlined,
+  ToolOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { clearAuth, roleLabel, type User } from '../../auth'
 import { useTheme } from '../../theme-context'
@@ -375,33 +374,23 @@ const layoutStyles = `
   }
 `
 
-const BASE_NAV_ITEMS = [
-  { key: 'dashboard', icon: <AppstoreOutlined />, label: 'Ghi chú ' },
-  { key: 'products', icon: <ShoppingCartOutlined />, label: 'Sản phẩm' },
-  { key: 'categories', icon: <TagOutlined />, label: 'Danh mục' },
-  { key: 'orders', icon: <BarChartOutlined />, label: 'Đơn hàng' },
-  { key: 'reports', icon: <BarChartOutlined />, label: 'Báo cáo' },
-]
-
 function buildNavItems(isAdmin: boolean) {
   return [
-    ...BASE_NAV_ITEMS,
+    { key: 'dashboard', icon: <AppstoreOutlined />, label: 'Ghi chú' },
+    { key: 'tools', icon: <ToolOutlined />, label: 'Công cụ' },
     ...(isAdmin
       ? [{ key: 'admin-users', icon: <TeamOutlined />, label: 'Quản lý người dùng' }]
       : []),
+    { key: 'account', icon: <UserOutlined />, label: 'Tài khoản' },
   ]
 }
 
 const PAGE_TITLES: Record<string, string> = {
   dashboard: 'Ghi chú',
-  products: 'Sản phẩm',
-  categories: 'Danh mục',
-  orders: 'Đơn hàng',
-  reports: 'Báo cáo',
+  tools: 'Công cụ',
   'admin-users': 'Quản lý người dùng',
+  account: 'Tài khoản',
 }
-
-const NO_DATA_PAGES = new Set(['products', 'categories', 'orders', 'reports'])
 
 function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [activeKey, setActiveKey] = useState('dashboard')
@@ -498,11 +487,7 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
                     {PAGE_TITLES[activeKey] ?? navItems.find((i) => i.key === activeKey)?.label ?? ''}
                   </Typography.Title>
                   <Typography.Text type="secondary">
-                    {activeKey === 'dashboard'
-                      ? 'Quản lý task và công việc'
-                      : NO_DATA_PAGES.has(activeKey)
-                        ? 'Chưa có dữ liệu'
-                        : ''}
+                    {activeKey === 'dashboard' ? 'Quản lý task và công việc' : ''}
                   </Typography.Text>
                 </div>
               )}
@@ -543,17 +528,13 @@ function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
                   />
                 </Card>
               )
-            ) : NO_DATA_PAGES.has(activeKey) ? (
+            ) : (
               <Card style={{ marginTop: 16 }}>
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description="Chưa có dữ liệu"
                   style={{ padding: '48px 0' }}
                 />
-              </Card>
-            ) : (
-              <Card style={{ marginTop: 16 }}>
-                <Empty description="Trang này đang được xây dựng" />
               </Card>
             )}
           </Layout.Content>
