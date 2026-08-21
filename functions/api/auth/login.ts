@@ -18,6 +18,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }): Pr
 
   const user = await getUserByEmail(context.env, email);
   if (!user) return jsonError('Email hoặc mật khẩu không đúng', 401);
+  if (user.disabled) return jsonError('Tài khoản đã bị khóa', 403);
 
   const hash = await hashPassword(password, user.salt);
   if (hash !== user.passwordHash) return jsonError('Email hoặc mật khẩu không đúng', 401);

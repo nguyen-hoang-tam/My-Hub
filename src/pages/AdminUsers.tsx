@@ -1,6 +1,26 @@
 import { useEffect, useState } from 'react'
-import { App, Button, Card, Form, Input, Select, Space, Table, Tag, Typography } from 'antd'
-import { ReloadOutlined, UserAddOutlined } from '@ant-design/icons'
+import {
+  App,
+  Button,
+  Card,
+  Dropdown,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+} from 'antd'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  MoreOutlined,
+  ReloadOutlined,
+  UserAddOutlined,
+} from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { request } from '../api/client'
 import type { UserRole } from '../auth'
@@ -10,6 +30,7 @@ interface AdminUser {
   name: string
   role: UserRole
   createdAt: number
+  disabled: boolean
 }
 
 interface AdminUsersProps {
@@ -17,11 +38,14 @@ interface AdminUsersProps {
 }
 
 function AdminUsers({ currentEmail }: AdminUsersProps) {
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const [form] = Form.useForm()
+  const [editForm] = Form.useForm<{ name: string; role: UserRole }>()
   const [loading, setLoading] = useState(false)
-  const [users, setUsers] = useState<AdminUser[]>([])
   const [listLoading, setListLoading] = useState(true)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [editing, setEditing] = useState<AdminUser | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
 
   const loadUsers = async () => {
     setListLoading(true)
@@ -76,6 +100,78 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
     }
   }
 
+  const toggleDisabled = (user: AdminUser, nextDisabled: boolean) => {
+    const doToggle = async () => {
+      try {
+        await request('/api/admin/users', {
+          method: 'PUT',
+          body: JSON.stringify({ email: user.email, disabled: nextDisabled }),
+        })
+        message.success(nextDisabled ? `Đã khóa ${user.email}` : `Đã mở khóa ${user.email}`)
+        await loadUsers()
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : 'Cập nhật thất bại')
+      }
+    }
+
+    if (nextDisabled) {
+      modal.confirm({
+        title: 'Khóa tài khoản?',
+        content: `${user.email} sẽ bị đăng xuất ngay lập tức và không thể đăng nhập lại.`,
+        okText: 'Khóa',
+        okButtonProps: { danger: true },
+        cancelText: 'Hủy',
+        onOk: doToggle,
+      })
+    } else {
+      doToggle()
+    }
+  }
+
+  const openEdit = (user: AdminUser) => {
+    setEditing(user)
+    editForm.setFieldsValue({ name: user.name, role: user.role })
+  }
+
+  const saveEdit = async (values: { name: string; role: UserRole }) => {
+    if (!editing) return
+    setEditSaving(true)
+    try {
+      await request('/api/admin/users', {
+        method: 'PUT',
+        body: JSON.stringify({ email: editing.email, ...values }),
+      })
+      message.success('Đã cập nhật tài khoản')
+      setEditing(null)
+      await loadUsers()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Cập nhật thất bại')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const removeUser = (user: AdminUser) => {
+    modal.confirm({
+      title: 'Xóa tài khoản?',
+      content: `${user.name} (${user.email}) sẽ bị xóa vĩnh viễn và đăng xuất ngay.`,
+      okText: 'Xóa',
+      okButtonProps: { danger: true },
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await request(`/api/admin/users?email=${encodeURIComponent(user.email)}`, {
+            method: 'DELETE',
+          })
+          message.success(`Đã xóa ${user.email}`)
+          await loadUsers()
+        } catch (error) {
+          message.error(error instanceof Error ? error.message : 'Xóa thất bại')
+        }
+      },
+    })
+  }
+
   const columns: ColumnsType<AdminUser> = [
     { title: 'Tên', dataIndex: 'name', key: 'name' },
     { title: 'Email', dataIndex: 'email', key: 'email' },
@@ -83,7 +179,7 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
       title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
-      width: 120,
+      width: 130,
       render: (role: UserRole) => (
         <Tag color={role === 'admin' ? 'gold' : 'blue'}>
           {role === 'admin' ? 'Quản trị viên' : 'Thành viên'}
@@ -94,15 +190,64 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 140,
+      width: 110,
       render: (value: number) => new Date(value).toLocaleDateString('vi-VN'),
     },
     {
-      title: '',
-      key: 'current',
+      title: 'Trạng thái',
+      dataIndex: 'disabled',
+      key: 'disabled',
+      width: 110,
+      render: (_, record) =>
+        record.disabled ? <Tag color="error">Đã khóa</Tag> : <Tag color="success">Hoạt động</Tag>,
+    },
+    {
+      title: 'Khóa/Mở',
+      key: 'toggle',
       width: 90,
       render: (_, record) =>
-        record.email === currentEmail ? <Tag color="green">Bạn</Tag> : null,
+        record.email === currentEmail ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            Bạn
+          </Typography.Text>
+        ) : (
+          <Switch
+            checked={!record.disabled}
+            onChange={(checked) => toggleDisabled(record, !checked)}
+          />
+        ),
+    },
+    {
+      title: '',
+      key: 'action',
+      width: 60,
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              ...(record.email === currentEmail
+                ? []
+                : [
+                    {
+                      key: 'delete',
+                      icon: <DeleteOutlined />,
+                      label: 'Xóa',
+                      danger: true,
+                    },
+                  ]),
+              { key: 'edit', icon: <EditOutlined />, label: 'Sửa' },
+            ],
+            onClick: ({ key }) => {
+              if (key === 'edit') openEdit(record)
+              if (key === 'delete') removeUser(record)
+            },
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
+      ),
     },
   ]
 
@@ -177,8 +322,38 @@ function AdminUsers({ currentEmail }: AdminUsersProps) {
           dataSource={users}
           loading={listLoading}
           pagination={false}
+          scroll={{ x: 800 }}
         />
       </Card>
+
+      <Modal
+        title={`Sửa tài khoản: ${editing?.email ?? ''}`}
+        open={!!editing}
+        onCancel={() => setEditing(null)}
+        onOk={() => editForm.submit()}
+        confirmLoading={editSaving}
+        okText="Lưu"
+        cancelText="Hủy"
+        destroyOnHidden
+      >
+        <Form form={editForm} layout="vertical" onFinish={saveEdit}>
+          <Form.Item
+            label="Họ và tên"
+            name="name"
+            rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
+          >
+            <Input placeholder="Nguyễn Văn A" />
+          </Form.Item>
+          <Form.Item label="Vai trò" name="role">
+            <Select
+              options={[
+                { value: 'user', label: 'Thành viên' },
+                { value: 'admin', label: 'Quản trị viên' },
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Space>
   )
 }
