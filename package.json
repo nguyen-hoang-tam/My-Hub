@@ -1,10 +1,11 @@
 {
-  "name": "rect-crud",
+  "name": "my-hub",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "wrangler pages dev --proxy 5173 --port 8788",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "npm run build && vite preview",

@@ -11,8 +11,8 @@ export function roleLabel(role: UserRole | undefined): string {
   return role === 'admin' ? 'Quản trị viên' : 'Thành viên'
 }
 
-const USER_KEY = 'rect-crud.user'
-const TOKEN_KEY = 'rect-crud.token'
+const USER_KEY = 'myhub.user'
+const TOKEN_KEY = 'myhub.token'
 
 export function getStoredUser(): User | null {
   try {
